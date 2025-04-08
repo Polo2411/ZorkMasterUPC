@@ -127,18 +127,34 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bag.cpp" />
+    <ClCompile Include="creature.cpp" />
+    <ClCompile Include="enemy.cpp" />
     <ClCompile Include="entity.cpp" />
+    <ClCompile Include="exit.cpp" />
+    <ClCompile Include="health_potion.cpp" />
     <ClCompile Include="item.cpp" />
+    <ClCompile Include="key.cpp" />
+    <ClCompile Include="npc.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="room.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="sword.cpp" />
     <ClCompile Include="world.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bag.h" />
+    <ClInclude Include="creature.h" />
+    <ClInclude Include="enemy.h" />
     <ClInclude Include="entity.h" />
+    <ClInclude Include="exit.h" />
+    <ClInclude Include="health_potion.h" />
     <ClInclude Include="item.h" />
+    <ClInclude Include="key.h" />
+    <ClInclude Include="npc.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="room.h" />
+    <ClInclude Include="sword.h" />
     <ClInclude Include="world.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,15 +1,18 @@
 #include "health_potion.h"
 #include <iostream>
 
-HealthPotion::HealthPotion(const std::string& name, const std::string& description, int healAmount, Entity* parent)
-    : Item(name, description, parent), healAmount(healAmount)
+HealthPotion::HealthPotion(const std::string& name, const std::string& description, int healAmount, const std::string& direction, Entity* parent)
+    : Item(name, description, direction, parent)
 {
+    // Forzar que la poción siempre restaure 50 puntos
+    this->healAmount = 50;
 }
 
 void HealthPotion::Use() {
-    std::cout << "You drink the " << name << " and restore " << healAmount << " health.\n";
+    std::cout << "Drinking " << name << " and restoring " << healAmount << " health.\n";
 }
 
 int HealthPotion::GetHealAmount() const {
     return healAmount;
 }
+

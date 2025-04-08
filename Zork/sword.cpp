@@ -1,14 +1,15 @@
 #include "sword.h"
 #include <iostream>
 
-Sword::Sword(const std::string& name, const std::string& description, int damage, Entity* parent)
-    : Item(name, description, parent), damage(damage)
+Sword::Sword(const std::string& name, const std::string& description, int damage, const std::string& direction, Entity* parent)
+    : Item(name, description, direction, parent)
 {
-    // Sword specific; damage is stored here.
+    // Forzar que la espada siempre haga 20 de daño
+    this->damage = 20;
 }
 
 void Sword::Use() {
-    std::cout << "You swing the " << name << ", dealing " << damage << " damage.\n";
+    std::cout << "Swinging " << name << " dealing " << damage << " damage.\n";
 }
 
 int Sword::GetDamage() const {

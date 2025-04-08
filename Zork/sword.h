@@ -5,7 +5,7 @@
 
 class Sword : public Item {
 public:
-    Sword(const std::string& name, const std::string& description, int damage, Entity* parent = nullptr);
+    Sword(const std::string& name, const std::string& description, int damage, const std::string& direction, Entity* parent = nullptr);
     virtual void Use() override;
     int GetDamage() const;
 
@@ -14,4 +14,3 @@ private:
 };
 
 #endif // SWORD_H
-

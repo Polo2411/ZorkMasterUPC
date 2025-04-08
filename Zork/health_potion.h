@@ -5,7 +5,7 @@
 
 class HealthPotion : public Item {
 public:
-    HealthPotion(const std::string& name, const std::string& description, int healAmount, Entity* parent = nullptr);
+    HealthPotion(const std::string& name, const std::string& description, int healAmount, const std::string& direction, Entity* parent = nullptr);
     virtual void Use() override;
     int GetHealAmount() const;
 
@@ -14,4 +14,3 @@ private:
 };
 
 #endif // HEALTH_POTION_H
-

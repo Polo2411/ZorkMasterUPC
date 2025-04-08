@@ -2,6 +2,7 @@
 #define WORLD_H
 
 #include <string>
+#include <vector>
 #include "room.h"
 #include "player.h"
 
@@ -9,12 +10,13 @@ class World {
 public:
     World();
     ~World();
+
     void Run();
+    void ProcessCommand(const std::string& command);
 
 private:
-    Room* startRoom;
+    std::vector<Room*> rooms;
     Player* player;
-    void ProcessCommand(const std::string& command);
 };
 
 #endif // WORLD_H
