@@ -2,11 +2,11 @@
 #define KEY_H
 
 #include "item.h"
-#include "room.h"  // Para usar Room*
+#include "room.h"
 
 class Key : public Item {
 public:
-    // Ahora se recibe además la room that the key opens.
+    // La llave abre la room pasada en opensRoom (asociada a la exit cuyo destino es esa room)
     Key(const std::string& name, const std::string& description, const std::string& direction, Room* opensRoom, Entity* parent = nullptr);
     virtual void Use() override;
     Room* GetOpensRoom() const;

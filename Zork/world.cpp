@@ -26,38 +26,36 @@ std::vector<std::string> tokenize(const std::string& input) {
 
 World::World() {
     // Creamos dos salas.
-    Room* roomOne = new Room(
-        "RoomOne",
-        "This room is sparsely furnished."
-    );
-    Room* roomTwo = new Room(
-        "RoomTwo",
-        "A second room with a peculiar atmosphere."
-    );
+    Room* roomOne = new Room("RoomOne", "This room is sparsely furnished.");
+    Room* roomTwo = new Room("RoomTwo", "A second room with a peculiar atmosphere.");
 
-    // En roomOne se ubican:
+    // En roomOne:
     // - Una Sword en "east".
-    // - Una Bag en "south".
-    // - Un Exit en "north" que lleva a roomTwo.
     Sword* sword = new Sword("Sword", "A shiny sword on the floor.", 20, "east", roomOne);
     roomOne->AddEntity("east", sword);
 
+    // - Una Bag en "south".
     Bag* bag = new Bag("Bag", "A sturdy leather bag.", 5, "south", roomOne);
     roomOne->AddEntity("south", bag);
 
+    // - Una Key en "west" que abre el door (exit) a roomTwo.
+    Key* key = new Key("Key", "A small key.", "west", roomTwo, roomOne);
+    roomOne->AddEntity("west", key);
+
+    // - Un Exit en "north" que lleva a roomTwo, inicialmente cerrada.
     Exit* exitOne = new Exit("Exit", "A passage to another room.", roomOne, roomTwo);
-    exitOne->SetState(OPEN);
+    exitOne->SetState(CLOSED);  // Cerrada inicialmente.
     roomOne->AddEntity("north", exitOne);
 
-    // En roomTwo se ubican:
+    // En roomTwo:
     // - Una HealthPotion en "east".
-    // - Un Exit en "north" que regresa a roomOne.
     HealthPotion* potion = new HealthPotion("HealthPotion", "Heals you quite a bit.", 50, "east", roomTwo);
     roomTwo->AddEntity("east", potion);
 
+    // - La misma Exit, en sentido opuesto: ubicada en "south" (porque entramos por abajo).
     Exit* exitTwo = new Exit("Exit", "A way back to RoomOne.", roomTwo, roomOne);
-    exitTwo->SetState(OPEN);
-    roomTwo->AddEntity("north", exitTwo);
+    exitTwo->SetState(CLOSED);  // Cerrada inicialmente.
+    roomTwo->AddEntity("south", exitTwo);
 
     rooms.push_back(roomOne);
     rooms.push_back(roomTwo);

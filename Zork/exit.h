@@ -1,6 +1,6 @@
 #ifndef EXIT_H
 #define EXIT_H
-
+#include "key.h"
 #include "entity.h"
 #include "room.h"
 
@@ -16,10 +16,13 @@ public:
     ExitState GetState() const;
     void SetState(ExitState newState);
 
-    // Maybe an open/close method if needed
-    void Open();
+    void Open();   // Abre sin llave (para cofre, por ejemplo)
     void Close();
     void Lock();
+
+    // Nuevos métodos que requieren llave
+    void OpenWithKey(const Key* key);
+    void CloseWithKey(const Key* key);
 
 private:
     Room* source;
