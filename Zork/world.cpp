@@ -1,241 +1,147 @@
 #include "world.h"
-
 #include "sword.h"
-#include "key.h"
 #include "bag.h"
 #include "health_potion.h"
 #include "exit.h"
-#include "entity.h"
-
+#include "string_utils.h"
 #include <iostream>
 #include <sstream>
 #include <map>
-#include <vector>
 #include <functional>
+#include <vector>
 
-// Tokeniza el comando
+
 std::vector<std::string> tokenize(const std::string& input) {
     std::istringstream iss(input);
     std::vector<std::string> tokens;
     std::string token;
     while (iss >> token) {
+        // Convertir token a minúsculas
+        token = toLower(token);
         tokens.push_back(token);
     }
     return tokens;
 }
 
-World::World()
-{
-    // Creamos la primera habitación
+
+World::World() {
     Room* roomOne = new Room(
         "RoomOne",
-        "You see a sword lying to the south, a bag to the north, and a key on the west side. "
-        "There is an old door to the east."
+        "You see a Sword to the east, a Bag to the south, and an Exit to the north."
+        "The center is fairly empty."
     );
-
-    // Creamos la segunda habitación
     Room* roomTwo = new Room(
         "RoomTwo",
-        "A calmer chamber. There is a Health Potion on the north side."
+        "A second room with a HealthPotion to the east. The center is also empty."
     );
 
-    // Conexiones reales para moverse
-    // Suponiendo que la 1ra hab. se conecta a la 2da por 'east' (para "move east")
-    roomOne->Connect("east", roomTwo);
-    // Y si quieres poder volver:
-    roomTwo->Connect("west", roomOne);
+    // Creamos los ítems, pero NO se añaden solos a la room, hay que hacerlo manual
+    Sword* sword = new Sword("Sword", "A shiny sword on the floor.", 20, "east", roomOne);
+    roomOne->AddEntity("east", sword);
 
-    // Objetos en roomOne con direcciones
-    Sword* sword = new Sword("Sword", "A gleaming sword on the floor.", 20, "south", roomOne);
-    Bag* bag = new Bag("Bag", "A sturdy bag with limited capacity.", 5, "north", roomOne);
-    Key* key = new Key("Key", "A small rusty key.", "west", nullptr, roomOne);
+    Bag* bag = new Bag("Bag", "A sturdy leather bag.", 5, "south", roomOne);
+    roomOne->AddEntity("south", bag);
 
-    // Puerta (Exit) para simular estado bloqueado
-    // Realmente, la clase Room ya tiene "Connect", pero supongamos que 'Exit' define
-    // si se puede usar esa conexión. Por defecto, decimos que "roomOne->Connect(east, roomTwo)" 
-    // ya está, pero controlamos si se puede o no mover con un Exit "Door".
-    Exit* door = new Exit("Door", "A locked door leading east.", roomOne, roomTwo);
-    door->SetState(LOCKED); // Bloqueada inicialmente
+    // Exit en roomOne -> north
+    Exit* exitOne = new Exit("Exit", "A passage leading to the second room.", roomOne, roomTwo);
+    exitOne->SetState(OPEN);
+    roomOne->AddEntity("north", exitOne);
 
-    // En la segunda habitación: poción en 'north'
-    HealthPotion* potion = new HealthPotion("Health", "A potion that restores health.", 50, "north", roomTwo);
+    // En roomTwo
+    HealthPotion* potion = new HealthPotion("HealthPotion", "Heals you quite a bit.", 50, "east", roomTwo);
+    roomTwo->AddEntity("east", potion);
 
-    // Guardamos habitaciones y creamos al jugador en RoomOne
+    // Exit de roomTwo -> north para volver
+    Exit* exitTwo = new Exit("Exit", "A way back to RoomOne.", roomTwo, roomOne);
+    exitTwo->SetState(OPEN);
+    roomTwo->AddEntity("north", exitTwo);
+
     rooms.push_back(roomOne);
     rooms.push_back(roomTwo);
-    player = new Player("Player", "A brave adventurer.", roomOne);
+
+    // Player en roomOne
+    player = new Player("Player", "An intrepid adventurer.", roomOne);
 }
 
-World::~World()
-{
-    for (Room* r : rooms) {
+World::~World() {
+    for (auto r : rooms) {
         delete r;
     }
     delete player;
 }
 
-void World::Run()
-{
+void World::Run() {
     std::cout << "Welcome to Zork\n";
     player->GetCurrentRoom()->Look();
 
-    std::string command;
     while (true) {
         std::cout << "\n> ";
+        std::string command;
         std::getline(std::cin, command);
-        if (command == "exit")
+        if (command == "quit" || command == "exit") {
             break;
+        }
         ProcessCommand(command);
     }
 }
 
-// Comandos con lambdas
-void World::ProcessCommand(const std::string& command)
-{
-    std::vector<std::string> tokens = tokenize(command);
+void World::ProcessCommand(const std::string& command) {
+    auto tokens = tokenize(command);
     if (tokens.empty()) {
-        std::cout << "Please enter a command.\n";
+        std::cout << "Please type a command.\n";
         return;
     }
 
-    std::map<std::string, std::function<void(const std::vector<std::string>&)>> commandMap;
+    std::map<std::string, std::function<void(const std::vector<std::string>&)>> cmdMap;
 
-    // Comando "look"
-    commandMap["look"] = [this](const std::vector<std::string>& params) {
+    cmdMap["look"] = [this](auto args) {
         player->GetCurrentRoom()->Look();
         };
 
-    // Comando "move"
-    commandMap["move"] = [this](const std::vector<std::string>& params) {
-        if (params.size() < 1) {
-            std::cout << "Move where?\n";
+    cmdMap["move"] = [this](auto args) {
+        if (args.empty()) {
+            std::cout << "Move where? (north, south, east, west, center)\n";
             return;
         }
-        // Ej.: "move east"
-        std::string dir = params[0];
-
-        // Verificamos si hay un Exit "Door" y si está bloqueada
-        Entity* doorEnt = player->GetCurrentRoom()->FindChild("Door", EXIT);
-        if (doorEnt) {
-            Exit* door = dynamic_cast<Exit*>(doorEnt);
-            // Si la dirección es la misma que la del Exit (roomOne->Connect("east", roomTwo)),
-            // y el exit está LOCKED, no dejamos pasar
-            // (aunque la room tenga Connect("east", roomTwo))
-            if (dir == "east" && door->GetState() == LOCKED) {
-                std::cout << "The door is locked.\n";
-                return;
-            }
-            // Si está OPEN, permitimos move
-        }
-
-        // Llamamos a Move en el Player
-        player->Move(dir);
+        player->Move(args[0]);
         };
 
-    // Comando "take"
-    commandMap["take"] = [this](const std::vector<std::string>& params) {
-        if (params.size() < 2) {
-            std::cout << "Take what and from where? e.g., 'take key west'\n";
+    cmdMap["exit"] = [this](auto args) {
+        if (args.empty()) {
+            std::cout << "Exit which direction?\n";
             return;
         }
-        Room* current = player->GetCurrentRoom();
-        std::string objectName = params[0];
-        std::string direction = params[1];
-        Entity* e = current->FindChild(objectName, ITEM);
-        if (e) {
-            Item* itemPtr = static_cast<Item*>(e);
-            if (itemPtr->GetDirection() == direction) {
-                if (objectName == "Key")
-                    player->PickUp(static_cast<Key*>(e));
-                else if (objectName == "Sword")
-                    player->PickUp(static_cast<Sword*>(e));
-                else if (objectName == "Bag")
-                    player->PickUp(static_cast<Bag*>(e));
-                else if (objectName == "Health")
-                    player->PickUp(static_cast<HealthPotion*>(e));
-                else
-                    player->PickUp(itemPtr);
-
-                current->children.remove(e);
-            }
-            else {
-                std::cout << "There is no " << objectName << " in the " << direction << " direction.\n";
-            }
-        }
-        else {
-            std::cout << "No " << objectName << " found in that direction.\n";
-        }
+        player->ExitRoom(args[0]);
         };
 
-    // Comando "open"
-    commandMap["open"] = [this](const std::vector<std::string>& params) {
-        if (params.empty()) {
-            std::cout << "Open what?\n";
+    cmdMap["take"] = [this](auto args) {
+        if (args.empty()) {
+            std::cout << "Take what?\n";
             return;
         }
-        // Suponemos que el item a abrir es "door"
-        if (params[0] == "door") {
-            Entity* doorEnt = player->GetCurrentRoom()->FindChild("Door", EXIT);
-            if (!doorEnt) {
-                std::cout << "There is no door here.\n";
-                return;
-            }
-            Exit* door = dynamic_cast<Exit*>(doorEnt);
-            if (door->GetState() == LOCKED) {
-                // Buscamos la Key en el inventario
-                bool hasKey = false;
-                for (auto itm : player->GetInventory()) {
-                    if (itm->name == "Key") {
-                        hasKey = true;
-                        break;
-                    }
-                }
-                if (hasKey) {
-                    door->Open();
-                    std::cout << "You unlocked and opened the door.\n";
-                }
-                else {
-                    std::cout << "The door is locked. You need a key.\n";
-                }
-            }
-            else {
-                std::cout << "The door is already open.\n";
-            }
-        }
-        else {
-            std::cout << "I don't know how to open " << params[0] << "\n";
-        }
+        player->TakeItem(args[0]);
         };
 
-    // Comando "drop"
-    commandMap["drop"] = [this](const std::vector<std::string>& params) {
-        if (params.empty()) {
+    cmdMap["drop"] = [this](auto args) {
+        if (args.empty()) {
             std::cout << "Drop what?\n";
             return;
         }
-        std::string itemName = params[0];
-        auto inv = player->GetInventory();
-        bool found = false;
-        for (auto item : inv) {
-            if (item->name == itemName) {
-                player->Drop(item);
-                found = true;
-                break;
-            }
-        }
-        if (!found)
-            std::cout << "You don't have that item.\n";
+        player->DropItem(args[0]);
         };
 
-    // Separamos el verbo (primer token)
+    cmdMap["status"] = [this](auto args) {
+        player->Status();
+        };
+
     std::string verb = tokens[0];
     tokens.erase(tokens.begin());
 
-    auto it = commandMap.find(verb);
-    if (it != commandMap.end()) {
+    auto it = cmdMap.find(verb);
+    if (it != cmdMap.end()) {
         it->second(tokens);
     }
     else {
-        std::cout << "I don't understand that command.\n";
+        std::cout << "I don't understand " << verb << "\n";
     }
 }

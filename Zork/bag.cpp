@@ -2,7 +2,11 @@
 #include <iostream>
 #include <algorithm>
 
-Bag::Bag(const std::string& name, const std::string& description, int capacity, const std::string& direction, Entity* parent)
+Bag::Bag(const std::string& name,
+    const std::string& description,
+    int capacity,
+    const std::string& direction,
+    Entity* parent)
     : Item(name, description, direction, parent), capacity(capacity)
 {
 }
@@ -23,7 +27,8 @@ bool Bag::AddItem(Item* item) {
 }
 
 bool Bag::RemoveItem(const std::string& itemName) {
-    auto it = std::find_if(items.begin(), items.end(), [&](Item* i) { return i->name == itemName; });
+    auto it = std::find_if(items.begin(), items.end(),
+        [&](Item* i) { return i->name == itemName; });
     if (it != items.end()) {
         items.erase(it);
         std::cout << "Removed " << itemName << " from " << name << ".\n";

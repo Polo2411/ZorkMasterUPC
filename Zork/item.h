@@ -6,8 +6,11 @@
 
 class Item : public Entity {
 public:
-    // Constructor now takes an extra parameter for the direction.
-    Item(const std::string& name, const std::string& description, const std::string& direction, Entity* parent = nullptr);
+    Item(const std::string& name,
+        const std::string& description,
+        const std::string& direction,
+        Entity* parent = nullptr);
+
     virtual void Use();
     std::string GetDirection() const;
 

@@ -12,6 +12,7 @@ public:
     ~World();
 
     void Run();
+    void toLower(const std::string& str);
     void ProcessCommand(const std::string& command);
 
 private:

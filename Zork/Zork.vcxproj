@@ -154,6 +154,7 @@
     <ClInclude Include="npc.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="room.h" />
+    <ClInclude Include="string_utils.h" />
     <ClInclude Include="sword.h" />
     <ClInclude Include="world.h" />
   </ItemGroup>

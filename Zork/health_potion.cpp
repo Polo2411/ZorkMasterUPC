@@ -1,10 +1,14 @@
 #include "health_potion.h"
 #include <iostream>
 
-HealthPotion::HealthPotion(const std::string& name, const std::string& description, int healAmount, const std::string& direction, Entity* parent)
+HealthPotion::HealthPotion(const std::string& name,
+    const std::string& description,
+    int healAmount,
+    const std::string& direction,
+    Entity* parent)
     : Item(name, description, direction, parent)
 {
-    // Forzar que la poción siempre restaure 50 puntos
+    // Forzamos que la poción restaure siempre 50
     this->healAmount = 50;
 }
 
@@ -15,4 +19,3 @@ void HealthPotion::Use() {
 int HealthPotion::GetHealAmount() const {
     return healAmount;
 }
-

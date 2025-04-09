@@ -4,35 +4,48 @@
 #include "creature.h"
 #include "room.h"
 #include "item.h"
-#include "bag.h"  // For dynamic_cast checking
+#include "bag.h"
 #include <vector>
+#include <string>
 
 class Player : public Creature {
 public:
     Player(const std::string& name, const std::string& description, Room* startRoom);
 
-    // Moves the player to the room in the given direction.
+    // "move direction" => move the player within the current room.
     void Move(const std::string& direction);
-    // Shows the player's inventory (the two-hand items plus bag details if any)
+
+    // "exit direction" => exit to another room if there's an open Exit.
+    void ExitRoom(const std::string& direction);
+
+    // "take itemName" => pick up an item from the current player's direction.
+    void TakeItem(const std::string& itemName);
+
+    // "drop itemName" => drop an item in the current player's direction.
+    void DropItem(const std::string& itemName);
+
+    // Shows the player's inventory.
     void ShowInventory() const;
 
-    // Picks up an item if allowed (up to two non-bag items; bags don't count).
-    void PickUp(Item* obj);
-    // Drops an item.
-    void Drop(Item* obj);
-
+    // Returns the current room.
     Room* GetCurrentRoom() const;
 
-    // Returns the player's inventory (all items currently held)
-    std::vector<Item*> GetInventory() const;
-    // Displays status: player's name, health, location, and inventory details.
+    // Returns the player's current internal direction within the room.
+    std::string GetPlayerDirection() const;
+    // Sets the player's internal direction.
+    void SetPlayerDirection(const std::string& dir);
+
+    // Displays the player's status.
     void Status() const;
+
+    // Returns a copy of the player's inventory.
+    std::vector<Item*> GetInventory() const;
 
 private:
     Room* currentRoom;
+    std::string playerDirection;  // e.g., "center", "north", "south", "east", "west".
     std::vector<Item*> inventory;
 
-    // Checks if adding this item would exceed the two-hand limit (excluding bags)
     bool CanCarry(Item* obj) const;
 };
 

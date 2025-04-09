@@ -6,7 +6,12 @@
 
 class Bag : public Item {
 public:
-    Bag(const std::string& name, const std::string& description, int capacity, const std::string& direction, Entity* parent = nullptr);
+    Bag(const std::string& name,
+        const std::string& description,
+        int capacity,
+        const std::string& direction,
+        Entity* parent = nullptr);
+
     virtual void Use() override;
     bool AddItem(Item* item);
     bool RemoveItem(const std::string& itemName);
