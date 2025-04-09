@@ -12,41 +12,38 @@ class Player : public Creature {
 public:
     Player(const std::string& name, const std::string& description, Room* startRoom);
 
-    // "move direction" => move the player within the current room.
     void Move(const std::string& direction);
-
-    // "exit direction" => exit to another room if there's an open Exit.
     void ExitRoom(const std::string& direction);
-
-    // "take itemName" => pick up an item from the current player's direction.
     void TakeItem(const std::string& itemName);
-
-    // "drop itemName" => drop an item in the current player's direction.
     void DropItem(const std::string& itemName);
 
-    // Shows the player's inventory.
+    // Inserta un ítem al inventario si cabe; si no, lo suelta en la sala
+    void InsertItemToInventory(Item* item);
+
+    // Saca un ítem específico del inventario (si existe)
+    void RemoveItemFromInventory(Item* item);
+
+    // Busca un ítem por nombre (ignora mayúsculas) en el inventario
+    Item* FindItemInInventory(const std::string& itemName);
+
     void ShowInventory() const;
-
-    // Returns the current room.
     Room* GetCurrentRoom() const;
-
-    // Returns the player's current internal direction within the room.
     std::string GetPlayerDirection() const;
-    // Sets the player's internal direction.
     void SetPlayerDirection(const std::string& dir);
-
-    // Displays the player's status.
     void Status() const;
 
-    // Returns a copy of the player's inventory.
+    // Devuelve una COPIA del vector. (No se puede usar para borrar ítems directamente)
     std::vector<Item*> GetInventory() const;
+
+    // Para chequear si el Player puede llevar un ítem extra
+    bool CanCarry(Item* obj) const;
+    bool HasOpenBag() const;
+
 
 private:
     Room* currentRoom;
-    std::string playerDirection;  // e.g., "center", "north", "south", "east", "west".
+    std::string playerDirection;
     std::vector<Item*> inventory;
-
-    bool CanCarry(Item* obj) const;
 };
 
 #endif // PLAYER_H

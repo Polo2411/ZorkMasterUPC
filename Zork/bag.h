@@ -3,6 +3,7 @@
 
 #include "item.h"
 #include <vector>
+#include <string>
 
 class Bag : public Item {
 public:
@@ -12,15 +13,19 @@ public:
         const std::string& direction,
         Entity* parent = nullptr);
 
-    virtual void Use() override;
+    virtual void Use() override;  // Abre la bolsa (isOpen=true) y lista el contenido
+    void Close();                 // Cierra la bolsa (isOpen=false)
+    bool IsOpen() const;
+
     bool AddItem(Item* item);
-    bool RemoveItem(const std::string& itemName);
+    Item* RemoveItem(const std::string& itemName);
     void ListContents() const;
     int GetRemainingCapacity() const;
 
 private:
     int capacity;
     std::vector<Item*> items;
+    bool isOpen;
 };
 
 #endif // BAG_H

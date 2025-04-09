@@ -1,8 +1,9 @@
 #include "player.h"
 #include "exit.h"
-#include "string_utils.h"  // Para toLower
+#include "string_utils.h"
 #include <iostream>
 #include <algorithm>
+#include <cctype>
 
 Player::Player(const std::string& name, const std::string& description, Room* startRoom)
     : Creature(name, description, startRoom), currentRoom(startRoom), playerDirection("center")
@@ -19,17 +20,13 @@ void Player::Move(const std::string& direction) {
     playerDirection = dir;
     std::cout << "You move to " << dir << " of " << currentRoom->name << ".\n";
 
-    // Recopilamos las entidades en esta dirección
     auto ents = currentRoom->GetEntities(dir);
     if (!ents.empty()) {
-        // Construimos un vector de frases, cada una con "a/an <nombre>"
         std::vector<std::string> itemPhrases;
         for (auto e : ents) {
             std::string art = getIndefiniteArticle(e->name);
             itemPhrases.push_back(art + " " + e->name);
         }
-
-        // Mostramos la lista resultante con "and" antes del último elemento
         if (itemPhrases.size() == 1) {
             std::cout << "Here you see " << itemPhrases[0] << ".\n";
         }
@@ -38,7 +35,6 @@ void Player::Move(const std::string& direction) {
                 << " and " << itemPhrases[1] << ".\n";
         }
         else {
-            // Si hay 3 o más, unimos con comas y "and" final
             std::cout << "Here you see ";
             for (size_t i = 0; i < itemPhrases.size(); i++) {
                 if (i == 0) {
@@ -131,16 +127,62 @@ void Player::DropItem(const std::string& itemName) {
     std::cout << "You dropped " << itemName << " at " << GetPlayerDirection() << "\n";
 }
 
-void Player::ShowInventory() const {
-    std::cout << "Inventory:\n";
-    for (auto obj : inventory) {
-        std::cout << " - " << obj->name << "\n";
-        if (auto bag = dynamic_cast<Bag*>(obj)) {
-            std::cout << "   Contents of " << bag->name << ":\n";
-            bag->ListContents();
-        }
+void Player::InsertItemToInventory(Item* item) {
+    if (!item) return;
+    if (CanCarry(item)) {
+        inventory.push_back(item);
+        std::cout << "You now have " << item->name << " in your inventory.\n";
+    }
+    else {
+        std::cout << "You cannot carry more non-bag items. You drop " << item->name << " on the floor.\n";
+        currentRoom->AddEntity(GetPlayerDirection(), item);
     }
 }
+
+void Player::RemoveItemFromInventory(Item* item) {
+    // Busca el item exacto en el vector inventory y lo quita
+    auto it = std::find(inventory.begin(), inventory.end(), item);
+    if (it != inventory.end()) {
+        inventory.erase(it);
+    }
+    // Si no se encuentra, no hace nada. 
+}
+
+Item* Player::FindItemInInventory(const std::string& itemName) {
+    std::string searchName = toLower(itemName);
+    for (auto it : inventory) {
+        if (toLower(it->name) == searchName) {
+            return it;
+        }
+    }
+    return nullptr;
+}
+
+void Player::ShowInventory() const {
+    std::vector<Item*> nonBags;
+    std::vector<Bag*> bags;
+    // Separa los ítems del inventario.
+    for (auto obj : inventory) {
+        if (auto bag = dynamic_cast<Bag*>(obj)) {
+            bags.push_back(bag);
+        }
+        else {
+            nonBags.push_back(obj);
+        }
+    }
+    std::cout << "Inventory:\n";
+    // Mostrar primero los ítems que no son Bag.
+    for (auto item : nonBags) {
+        std::cout << " - " << item->name << "\n";
+    }
+    // Luego, para cada Bag, mostrarla y su contenido.
+    for (auto bag : bags) {
+        std::cout << " - " << bag->name << "\n";
+        std::cout << "   Contents of " << bag->name << ":\n";
+        bag->ListContents();
+    }
+}
+
 
 Room* Player::GetCurrentRoom() const {
     return currentRoom;
@@ -155,6 +197,7 @@ void Player::SetPlayerDirection(const std::string& dir) {
 }
 
 std::vector<Item*> Player::GetInventory() const {
+    // Devuelve una copia del vector
     return inventory;
 }
 
@@ -168,8 +211,9 @@ void Player::Status() const {
 }
 
 bool Player::CanCarry(Item* obj) const {
-    if (dynamic_cast<Bag*>(obj))
+    if (dynamic_cast<Bag*>(obj)) {
         return true;
+    }
     int countNonBags = 0;
     for (auto x : inventory) {
         if (!dynamic_cast<Bag*>(x)) {
@@ -178,3 +222,23 @@ bool Player::CanCarry(Item* obj) const {
     }
     return (countNonBags < 2);
 }
+
+bool Player::HasOpenBag() const {
+    for (auto i : inventory) {
+        if (auto bag = dynamic_cast<Bag*>(i)) {
+            if (bag->IsOpen())
+                return true;
+        }
+    }
+    auto ents = currentRoom->GetEntities(GetPlayerDirection());
+    for (auto e : ents) {
+        if (e->type == ITEM) {
+            if (auto bag = dynamic_cast<Bag*>(e)) {
+                if (bag->IsOpen())
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+

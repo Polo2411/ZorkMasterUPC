@@ -1,4 +1,5 @@
 #include "bag.h"
+#include "string_utils.h"  // Para toLower()
 #include <iostream>
 #include <algorithm>
 
@@ -7,16 +8,40 @@ Bag::Bag(const std::string& name,
     int capacity,
     const std::string& direction,
     Entity* parent)
-    : Item(name, description, direction, parent), capacity(capacity)
+    : Item(name, description, direction, parent), capacity(capacity), isOpen(false)
 {
 }
 
 void Bag::Use() {
-    std::cout << "Opening " << name << "...\n";
+    if (!isOpen) {
+        isOpen = true;
+        std::cout << "You open " << name << ".\n";
+    }
+    else {
+        std::cout << name << " is already open.\n";
+    }
     ListContents();
 }
 
+void Bag::Close() {
+    if (isOpen) {
+        isOpen = false;
+        std::cout << "You close " << name << ".\n";
+    }
+    else {
+        std::cout << name << " is already closed.\n";
+    }
+}
+
+bool Bag::IsOpen() const {
+    return isOpen;
+}
+
 bool Bag::AddItem(Item* item) {
+    if (!isOpen) {
+        std::cout << "You must open " << name << " before adding items.\n";
+        return false;
+    }
     if (items.size() < static_cast<size_t>(capacity)) {
         items.push_back(item);
         std::cout << "Added " << item->name << " to " << name << ".\n";
@@ -26,16 +51,24 @@ bool Bag::AddItem(Item* item) {
     return false;
 }
 
-bool Bag::RemoveItem(const std::string& itemName) {
+Item* Bag::RemoveItem(const std::string& itemName) {
+    if (!isOpen) {
+        std::cout << "You must open " << name << " before removing items.\n";
+        return nullptr;
+    }
     auto it = std::find_if(items.begin(), items.end(),
-        [&](Item* i) { return i->name == itemName; });
+        [&](Item* i) {
+            // Comparar sin distinguir mayúsculas.
+            return toLower(i->name) == toLower(itemName);
+        });
     if (it != items.end()) {
+        Item* ptr = *it;
         items.erase(it);
         std::cout << "Removed " << itemName << " from " << name << ".\n";
-        return true;
+        return ptr;
     }
     std::cout << itemName << " not found in " << name << ".\n";
-    return false;
+    return nullptr;
 }
 
 void Bag::ListContents() const {
@@ -43,6 +76,7 @@ void Bag::ListContents() const {
         std::cout << name << " is empty.\n";
         return;
     }
+    std::cout << name << " contains:\n";
     for (auto i : items) {
         std::cout << " - " << i->name << "\n";
     }
