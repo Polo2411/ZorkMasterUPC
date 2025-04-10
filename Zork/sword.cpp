@@ -6,10 +6,11 @@ Sword::Sword(const std::string& name,
     int damage,
     const std::string& direction,
     Entity* parent)
-    : Item(name, description, direction, parent)
+    : Item(name, description, direction, parent),
+    damage(damage)
 {
-    // Fijamos damage a 20
-    this->damage = 20;
+    // Antes, forzabas "this->damage = 20;"
+    // Ahora permitimos usar 'damage' que nos pasen.
 }
 
 void Sword::Use() {
@@ -18,4 +19,8 @@ void Sword::Use() {
 
 int Sword::GetDamage() const {
     return damage;
+}
+
+void Sword::SetDamage(int dmg) {
+    damage = dmg;
 }

@@ -8,44 +8,72 @@
 #include <vector>
 #include <string>
 
+class Enemy; // forward declaration
+
 class Player : public Creature {
 public:
     Player(const std::string& name, const std::string& description, Room* startRoom);
 
+    // Movimiento dentro de la sala
     void Move(const std::string& direction);
+
+    // Cruzar una Exit
     void ExitRoom(const std::string& direction);
+
+    // Tomar un ítem en la dirección actual
     void TakeItem(const std::string& itemName);
+
+    // Soltar un ítem en la dirección actual
     void DropItem(const std::string& itemName);
 
-    // Inserta un ítem al inventario si cabe; si no, lo suelta en la sala
+    // Insertar ítem a inventario si cabe
     void InsertItemToInventory(Item* item);
 
-    // Saca un ítem específico del inventario (si existe)
+    // Eliminar ítem del inventario
     void RemoveItemFromInventory(Item* item);
 
-    // Busca un ítem por nombre (ignora mayúsculas) en el inventario
+    // Buscar ítem por nombre en el inventario
     Item* FindItemInInventory(const std::string& itemName);
 
+    // Mostrar inventario, con stats de armas/pociones
     void ShowInventory() const;
+
+    // Retorna la habitación actual
     Room* GetCurrentRoom() const;
+
+    // Dirección interna en la sala
     std::string GetPlayerDirection() const;
     void SetPlayerDirection(const std::string& dir);
+
+    // Mostrar estado del jugador (salud, inventario, etc.)
     void Status() const;
 
-    // Devuelve una COPIA del vector. (No se puede usar para borrar ítems directamente)
+    // Devuelve una copia del vector de ítems
     std::vector<Item*> GetInventory() const;
 
-    // Para chequear si el Player puede llevar un ítem extra
+    // Límite de ítems: 2 a menos que sean Bag
     bool CanCarry(Item* obj) const;
+
+    // Ver si hay una Bag abierta
     bool HasOpenBag() const;
 
-    void AttackEnemy(class Enemy* targetEnemy);
+    // Atacar a un enemigo cuerpo a cuerpo
+    void AttackEnemy(Enemy* targetEnemy);
 
+    // Disparar a un enemigo con Gun (si se tiene)
+    void ShootEnemy(Enemy* targetEnemy);
+
+    // Manejo de vida máxima
+    void SetMaxHealth(int m);
+    int GetMaxHealth() const;
 
 private:
     Room* currentRoom;
     std::string playerDirection;
     std::vector<Item*> inventory;
+
+    // Vida máxima
+    int maxHealth;
 };
 
 #endif // PLAYER_H

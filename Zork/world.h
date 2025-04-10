@@ -5,7 +5,10 @@
 #include <vector>
 #include "room.h"
 #include "player.h"
-#include "enemy.h"   // para Enemy y subclases
+#include "enemy.h"   
+
+// Declaraciones de forward si quieres: class Gun; class Bullet; class VitalityPotion; class Upgrader;
+// No estríctamente necesario si incluyes sus headers en world.cpp
 
 class World {
 public:

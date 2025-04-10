@@ -1,105 +1,91 @@
 #include "enemy.h"
-#include "player.h"
 #include "exit.h"
 #include "room.h"
 #include <iostream>
-#include <random>  // Para movimiento aleatorio
+#include <random>
 
 // --------------------
-// Enemy (clase base)
+// Enemy (base)
 // --------------------
 Enemy::Enemy(const std::string& name, const std::string& description, Room* startRoom)
     : Creature(name, description, startRoom)
 {
     health = 100;
-    // type = ENEMY; // si quieres un tipo enumerado distinto
 }
 
-void Enemy::Attack(Creature* target) {
-    std::cout << name << " attacks " << target->name << "!\n";
-    int dmg = 10;  // Daño base
-    target->SetHealth(target->GetHealth() - dmg);
-    if (!target->IsAlive()) {
-        std::cout << target->name << " is defeated by " << name << "...\n";
-    }
-}
+// Tomamos Attack como pura en .h, así que no definimos Attack aquí.
 
 void Enemy::TakeDamage(int dmg) {
     health -= dmg;
     std::cout << name << " takes " << dmg << " damage, health is now " << health << ".\n";
     if (!IsAlive()) {
         std::cout << name << " has been defeated.\n";
-        if (location) {
-            // Lo quitamos de la sala
+        if (location)
             location->children.remove(this);
-        }
     }
 }
 
-// Se llama tras cada comando del jugador
+// IA
 void Enemy::Update(Player* player) {
     if (!IsAlive()) return;
 
-    // Si Enemy y Player comparten sala, Attack
+    // Si está en la misma sala, ataca
     if (GetLocation() == player->GetCurrentRoom()) {
-        std::cout << name << " sees " << player->name << " and attacks!\n";
+        std::cout << name << " sees " << player->name << "!\n";
         Attack(player);
         return;
     }
-
-    // De lo contrario, el Enemy intenta moverse
+    // Movimiento
     Room* current = GetLocation();
     if (!current) return;
 
-    // Recogemos el mapa de direcciones
+    // Buscar direcciones
     const std::map<std::string, std::vector<Entity*>>& dirsMap = current->GetDirections();
-    std::vector<std::string> possibleDirs;
+    // 50% de moverse, 50% de quedarse
+    static std::random_device rd;
+    static std::mt19937 rng(rd());
+    std::uniform_int_distribution<int> coin(0, 1);
+    if (coin(rng) == 0) {
+        // No se mueve este turno
+        return;
+    }
 
-    // Iterar a la vieja usanza para no usar auto
+    // Recolectar dirs con exits abiertas
+    std::vector<std::string> possibleDirs;
     for (std::map<std::string, std::vector<Entity*>>::const_iterator it = dirsMap.begin();
-        it != dirsMap.end();
-        ++it)
+        it != dirsMap.end(); ++it)
     {
         const std::string& dir = it->first;
         const std::vector<Entity*>& ents = it->second;
-        bool hasOpenExit = false;
-        // Buscamos una Exit abierta
+        bool openExit = false;
         for (size_t i = 0; i < ents.size(); i++) {
             if (ents[i]->type == EXIT) {
                 Exit* ex = dynamic_cast<Exit*>(ents[i]);
                 if (ex && ex->GetState() == OPEN) {
-                    hasOpenExit = true;
+                    openExit = true;
                     break;
                 }
             }
         }
-        if (hasOpenExit) {
+        if (openExit) {
             possibleDirs.push_back(dir);
         }
     }
-
     if (possibleDirs.empty()) {
-        // No hay salidas abiertas, se queda quieto
         return;
     }
-
-    // Elegir dirección aleatoria
-    static std::random_device rd;
-    static std::mt19937 rng(rd());
     std::uniform_int_distribution<int> dist(0, (int)possibleDirs.size() - 1);
     int choice = dist(rng);
     std::string chosenDir = possibleDirs[choice];
 
-    // Movernos a la exit en chosenDir si está OPEN
-    const std::vector<Entity*>& entsInDir = current->GetEntities(chosenDir);
-    for (size_t i = 0; i < entsInDir.size(); i++) {
-        Entity* e = entsInDir[i];
-        if (e->type == EXIT) {
-            Exit* ex = dynamic_cast<Exit*>(e);
+    const std::vector<Entity*>& dirEnts = current->GetEntities(chosenDir);
+    for (size_t i = 0; i < dirEnts.size(); i++) {
+        if (dirEnts[i]->type == EXIT) {
+            Exit* ex = dynamic_cast<Exit*>(dirEnts[i]);
             if (ex && ex->GetState() == OPEN) {
                 Room* dest = ex->GetDestinationFor(current);
                 if (dest) {
-                    std::cout << name << " moves " << chosenDir
+                    std::cout << name << " wanders " << chosenDir
                         << " to " << dest->name << ".\n";
                     SetLocation(dest);
                 }
@@ -110,21 +96,43 @@ void Enemy::Update(Player* player) {
 }
 
 // --------------------
-// Demon
+// Demon: 10 damage
 // --------------------
 Demon::Demon(const std::string& name, const std::string& description, Room* startRoom)
     : Enemy(name, description, startRoom)
 {
-    // Menos vida
     health = 50;
 }
 
+void Demon::Attack(Creature* target) {
+    int dmg = 10;
+    std::cout << name << " attacks " << target->name << " for " << dmg << " damage!\n";
+    target->SetHealth(target->GetHealth() - dmg);
+    if (target->IsAlive()) {
+        std::cout << target->name << " has now " << target->GetHealth() << " HP.\n";
+    }
+    else {
+        std::cout << target->name << " is defeated by " << name << "...\n";
+    }
+}
+
 // --------------------
-// DemonKnight
+// DemonKnight: 20 damage
 // --------------------
 DemonKnight::DemonKnight(const std::string& name, const std::string& description, Room* startRoom)
     : Enemy(name, description, startRoom)
 {
-    // Más vida
-    health = 150;
+    health = 100;
+}
+
+void DemonKnight::Attack(Creature* target) {
+    int dmg = 20;
+    std::cout << name << " strikes " << target->name << " for " << dmg << " damage!\n";
+    target->SetHealth(target->GetHealth() - dmg);
+    if (target->IsAlive()) {
+        std::cout << target->name << " has now " << target->GetHealth() << " HP.\n";
+    }
+    else {
+        std::cout << target->name << " is destroyed by " << name << "...\n";
+    }
 }

@@ -2,41 +2,36 @@
 #define ENEMY_H
 
 #include "creature.h"
+#include "player.h"  // Para usar Player* en Update
 
-// Clase base Enemy: cualquier enemigo genérico
 class Enemy : public Creature {
 public:
     Enemy(const std::string& name, const std::string& description, Room* startRoom);
     virtual ~Enemy() = default;
 
-    // Método de ataque genérico (daño base = 10, por ejemplo).
-    virtual void Attack(Creature* target);
-    // Recibir daño genérico.
+    // Cada subclase definirá su daño en Attack
+    virtual void Attack(Creature* target) = 0;
     virtual void TakeDamage(int dmg);
+    virtual void Update(Player* player);
 
-    // Se llamará después de cada comando del jugador (en cada "turno")
-    // para que el enemigo decida moverse o atacar.
-    virtual void Update(class Player* player);
+protected:
+    // Tus subclases podrían usar un int damage;
 };
 
-// Subclase Demon: un enemigo con menos HP pero que ataca rápido
 class Demon : public Enemy {
 public:
     Demon(const std::string& name, const std::string& description, Room* startRoom);
     virtual ~Demon() = default;
 
-    // Podríamos sobreescribir Attack si queremos, 
-    // pero si solo cambiamos stats podemos usarlo tal cual de la clase Enemy.
+    virtual void Attack(Creature* target) override;
 };
 
-// Subclase DemonKnight: un enemigo más fuerte, con más HP y más daño
 class DemonKnight : public Enemy {
 public:
     DemonKnight(const std::string& name, const std::string& description, Room* startRoom);
     virtual ~DemonKnight() = default;
 
-    // Podríamos sobreescribir Attack para más daño, o usar 
-    // una variable de daño para personalizar la subclase.
+    virtual void Attack(Creature* target) override;
 };
 
 #endif // ENEMY_H

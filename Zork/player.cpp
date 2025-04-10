@@ -1,6 +1,7 @@
 #include "player.h"
 #include "exit.h"
 #include "sword.h"
+#include "gun.h"
 #include "health_potion.h"
 #include "enemy.h"
 #include "string_utils.h"
@@ -12,10 +13,15 @@ Player::Player(const std::string& name, const std::string& description, Room* st
     : Creature(name, description, startRoom), currentRoom(startRoom), playerDirection("center")
 {
     type = PLAYER;
+    maxHealth = 100;
+    health = 100;
 }
 
+// Mover en la sala
 void Player::Move(const std::string& direction) {
     std::string dir = toLower(direction);
+    // Opcional: si (dir == playerDirection) => no moverse
+
     if (!currentRoom->HasDirection(dir)) {
         std::cout << "That direction doesn't exist in this room.\n";
         return;
@@ -26,6 +32,7 @@ void Player::Move(const std::string& direction) {
     auto ents = currentRoom->GetEntities(dir);
     if (!ents.empty()) {
         std::vector<std::string> itemPhrases;
+        itemPhrases.reserve(ents.size());
         for (auto e : ents) {
             std::string art = getIndefiniteArticle(e->name);
             itemPhrases.push_back(art + " " + e->name);
@@ -55,9 +62,8 @@ void Player::Move(const std::string& direction) {
     }
 }
 
-// Player::ExitRoom
+// Cruzar la Exit
 void Player::ExitRoom(const std::string& direction) {
-    // Buscar si hay una exit en la direction actual
     auto ents = currentRoom->GetEntities(direction);
     Exit* exitPtr = nullptr;
     for (auto e : ents) {
@@ -74,13 +80,11 @@ void Player::ExitRoom(const std::string& direction) {
         std::cout << "That exit is not open. You should open it first.\n";
         return;
     }
-    // Determinar la room de destino: exitPtr->GetDestinationFor(currentRoom)
     Room* nextRoom = exitPtr->GetDestinationFor(currentRoom);
     if (!nextRoom) {
         std::cout << "This exit doesn't lead anywhere from here.\n";
         return;
     }
-    // Mover al nextRoom
     currentRoom = nextRoom;
     playerDirection = "center";
     std::cout << "You exit towards " << direction
@@ -88,7 +92,7 @@ void Player::ExitRoom(const std::string& direction) {
     currentRoom->Look();
 }
 
-
+// Tomar un ítem normal
 void Player::TakeItem(const std::string& itemName) {
     std::string searchName = toLower(itemName);
     auto ents = currentRoom->GetEntities(GetPlayerDirection());
@@ -121,6 +125,7 @@ void Player::TakeItem(const std::string& itemName) {
     }
 }
 
+// Soltar un ítem
 void Player::DropItem(const std::string& itemName) {
     std::string searchName = toLower(itemName);
     auto it = std::find_if(inventory.begin(), inventory.end(),
@@ -135,6 +140,7 @@ void Player::DropItem(const std::string& itemName) {
     std::cout << "You dropped " << itemName << " at " << GetPlayerDirection() << "\n";
 }
 
+// Insertar ítem al inventario
 void Player::InsertItemToInventory(Item* item) {
     if (!item) return;
     if (CanCarry(item)) {
@@ -142,18 +148,18 @@ void Player::InsertItemToInventory(Item* item) {
         std::cout << "You now have " << item->name << " in your inventory.\n";
     }
     else {
-        std::cout << "You cannot carry more non-bag items. You drop " << item->name << " on the floor.\n";
+        std::cout << "You cannot carry more non-bag items. You drop "
+            << item->name << " on the floor.\n";
         currentRoom->AddEntity(GetPlayerDirection(), item);
     }
 }
 
+// Quitar un ítem del inventario
 void Player::RemoveItemFromInventory(Item* item) {
-    // Busca el item exacto en el vector inventory y lo quita
     auto it = std::find(inventory.begin(), inventory.end(), item);
     if (it != inventory.end()) {
         inventory.erase(it);
     }
-    // Si no se encuentra, no hace nada. 
 }
 
 Item* Player::FindItemInInventory(const std::string& itemName) {
@@ -166,7 +172,7 @@ Item* Player::FindItemInInventory(const std::string& itemName) {
     return nullptr;
 }
 
-// Modificamos ShowInventory para mostrar stats de Swords y Potions
+// Mostrar inventario, stats
 void Player::ShowInventory() const {
     std::vector<Item*> nonBags;
     std::vector<Bag*> bags;
@@ -181,26 +187,27 @@ void Player::ShowInventory() const {
     }
     std::cout << "Inventory:\n";
     for (auto item : nonBags) {
-        // Mostramos la info
         std::cout << " - " << item->name;
-        // Si es Sword, mostramos damage
+        // Ej.: si es Sword
         if (auto sw = dynamic_cast<Sword*>(item)) {
             std::cout << " [Damage: " << sw->GetDamage() << "]";
         }
-        // Si es HealthPotion, mostramos heal
-        else if (auto hp = dynamic_cast<HealthPotion*>(item)) {
-            std::cout << " [Heal: " << hp->GetHealAmount() << "]";
+        // Si es Gun
+        if (auto g = dynamic_cast<Gun*>(item)) {
+            std::cout << " [Damage: " << g->GetDamage()
+                << ", Ammo: " << g->GetAmmoCount() << "]";
         }
+        // Si es HealthPotion
+        // ...
         std::cout << "\n";
     }
-    // Luego, Bags
+    // Bags
     for (auto bag : bags) {
         std::cout << " - " << bag->name << "\n";
         std::cout << "   Contents of " << bag->name << ":\n";
         bag->ListContents();
     }
 }
-
 
 Room* Player::GetCurrentRoom() const {
     return currentRoom;
@@ -215,19 +222,22 @@ void Player::SetPlayerDirection(const std::string& dir) {
 }
 
 std::vector<Item*> Player::GetInventory() const {
-    // Devuelve una copia del vector
-    return inventory;
+    return inventory; // copia
 }
 
+// Muestra la vida actual y el inventario
 void Player::Status() const {
     std::cout << "=== Player Status ===\n";
     std::cout << "Name: " << name << "\n";
-    std::cout << "Health: " << GetHealth() << "\n";
-    std::cout << "Location: " << currentRoom->name << ", at " << playerDirection << "\n";
+    std::cout << "Health: " << GetHealth()
+        << " / " << maxHealth << "\n";
+    std::cout << "Location: " << currentRoom->name
+        << ", at " << playerDirection << "\n";
     ShowInventory();
     std::cout << "=====================\n";
 }
 
+// Máx 2 items si no son Bag
 bool Player::CanCarry(Item* obj) const {
     if (dynamic_cast<Bag*>(obj)) {
         return true;
@@ -248,7 +258,7 @@ bool Player::HasOpenBag() const {
                 return true;
         }
     }
-    auto ents = currentRoom->GetEntities(GetPlayerDirection());
+    auto ents = currentRoom->GetEntities(playerDirection);
     for (auto e : ents) {
         if (e->type == ITEM) {
             if (auto bag = dynamic_cast<Bag*>(e)) {
@@ -260,10 +270,11 @@ bool Player::HasOpenBag() const {
     return false;
 }
 
+// Atacar enemigo con daño base 1 o daño de Sword
 void Player::AttackEnemy(Enemy* targetEnemy) {
     if (!targetEnemy) return;
-    // Buscar si el Player tiene Sword
     int damage = 1;
+    // Buscar Sword
     for (size_t i = 0; i < inventory.size(); i++) {
         if (auto sw = dynamic_cast<Sword*>(inventory[i])) {
             damage = sw->GetDamage();
@@ -275,4 +286,42 @@ void Player::AttackEnemy(Enemy* targetEnemy) {
     targetEnemy->TakeDamage(damage);
 }
 
+// Dispara a un enemigo usando Gun (si hay ammo)
+void Player::ShootEnemy(Enemy* targetEnemy) {
+    if (!targetEnemy) return;
+    // Ver si tenemos Gun
+    // (puede estar en inventory directamente, o en Bag si expandes lógica)
+    Gun* gunPtr = nullptr;
+    for (auto it : inventory) {
+        if (auto g = dynamic_cast<Gun*>(it)) {
+            gunPtr = g;
+            break;
+        }
+    }
+    if (!gunPtr) {
+        std::cout << "You have no gun to shoot with.\n";
+        return;
+    }
+    // Ver si hay ammo
+    if (gunPtr->GetAmmoCount() <= 0) {
+        std::cout << "You have no bullets!\n";
+        return;
+    }
+    // Consumir 1 bala y hacer daño
+    gunPtr->AddAmmo(-1); // Resta 1
+    int dmg = gunPtr->GetDamage();
+    std::cout << "You shoot " << targetEnemy->name
+        << " dealing " << dmg << " damage!\n";
+    targetEnemy->TakeDamage(dmg);
+}
 
+// Manejo de vida máxima
+void Player::SetMaxHealth(int m) {
+    maxHealth = m;
+    if (health > maxHealth) {
+        health = maxHealth;
+    }
+}
+int Player::GetMaxHealth() const {
+    return maxHealth;
+}

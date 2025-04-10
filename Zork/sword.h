@@ -12,7 +12,9 @@ public:
         Entity* parent = nullptr);
 
     virtual void Use() override;
-    int GetDamage() const;
+
+    int  GetDamage() const;
+    void SetDamage(int dmg); // NUEVO
 
 private:
     int damage;
