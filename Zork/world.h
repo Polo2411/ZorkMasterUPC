@@ -6,7 +6,6 @@
 #include "room.h"
 #include "player.h"
 
-// World se encarga de crear las salas y procesar los comandos del juego.
 class World {
 public:
     World();
@@ -19,11 +18,23 @@ private:
     std::vector<Room*> rooms;
     Player* player;
 
-    // Compara dos cadenas sin distinguir mayúsculas.
     bool equalIgnoreCase(const std::string& a, const std::string& b) const;
 
-    // Busca una Bag en el inventario del jugador o en la sala (en la dirección actual).
+    // Busca un Bag en la dirección actual o en el inventario
     class Bag* findBag(const std::string& containerName);
+
+    // Busca un Exit en la dirección actual
+    class Exit* findExit(const std::string& exitName);
+
+    // Busca un Item en la sala/dirección actual o en el inventario
+    class Item* findItem(const std::string& itemName);
+
+    void openExit(class Exit* exitPtr);
+    void closeExit(class Exit* exitPtr);
+
+    // Mensajes de error diferenciados para open/cerrar
+    void openSomething(const std::string& targetName);
+    void closeSomething(const std::string& targetName);
 };
 
 #endif // WORLD_H

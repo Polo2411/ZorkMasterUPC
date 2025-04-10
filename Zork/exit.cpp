@@ -1,12 +1,13 @@
+// exit.cpp
 #include "exit.h"
 #include <iostream>
 #include <cctype>
 
-Exit::Exit(const std::string& name, const std::string& description, Room* src, Room* dest)
-    : Entity(name, description), source(src), destination(dest), state(CLOSED) // Inicialmente cerrada.
+Exit::Exit(const std::string& name, const std::string& description,
+    Room* src, Room* dest)
+    : Entity(name, description), source(src), destination(dest), state(CLOSED)
 {
     type = EXIT;
-    // Se asume que la exit se agrega manualmente a la Room.
 }
 
 Room* Exit::GetSource() const {
@@ -25,6 +26,18 @@ void Exit::SetState(ExitState newState) {
     state = newState;
 }
 
+// Retorna a dónde se viaja si el jugador está en 'current'
+Room* Exit::GetDestinationFor(Room* current) const {
+    if (current == source) {
+        return destination;
+    }
+    if (current == destination) {
+        return source;
+    }
+    // Si no coincide con source/destination, no lleva a ningún lado.
+    return nullptr;
+}
+
 void Exit::Open() {
     state = OPEN;
     std::cout << "You open " << name << ".\n";
@@ -41,8 +54,12 @@ void Exit::Lock() {
 }
 
 void Exit::OpenWithKey(const Key* key) {
-    // La llave es válida si su opensRoom coincide con el destino.
-    if (key && key->GetOpensRoom() == destination) {
+    if (!key) {
+        std::cout << "You don't have a valid key.\n";
+        return;
+    }
+    // Si la Key abre la 'destination'
+    if (key->GetOpensRoom() == destination) {
         state = OPEN;
         std::cout << "You use " << key->name << " to open " << name << ".\n";
     }
@@ -52,7 +69,11 @@ void Exit::OpenWithKey(const Key* key) {
 }
 
 void Exit::CloseWithKey(const Key* key) {
-    if (key && key->GetOpensRoom() == destination) {
+    if (!key) {
+        std::cout << "You don't have a valid key.\n";
+        return;
+    }
+    if (key->GetOpensRoom() == destination) {
         state = CLOSED;
         std::cout << "You use " << key->name << " to close " << name << ".\n";
     }

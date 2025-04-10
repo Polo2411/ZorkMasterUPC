@@ -52,9 +52,10 @@ void Player::Move(const std::string& direction) {
     }
 }
 
+// Player::ExitRoom
 void Player::ExitRoom(const std::string& direction) {
-    std::string dir = toLower(direction);
-    auto ents = currentRoom->GetEntities(dir);
+    // Buscar si hay una exit en la direction actual
+    auto ents = currentRoom->GetEntities(direction);
     Exit* exitPtr = nullptr;
     for (auto e : ents) {
         if (e->type == EXIT) {
@@ -63,23 +64,27 @@ void Player::ExitRoom(const std::string& direction) {
         }
     }
     if (!exitPtr) {
-        std::cout << "No exit found in " << dir << "\n";
+        std::cout << "There is no exit in " << direction << ".\n";
         return;
     }
-    if (exitPtr->GetState() == LOCKED) {
-        std::cout << "That exit is locked.\n";
+    if (exitPtr->GetState() != OPEN) {
+        std::cout << "That exit is not open. You should open it first.\n";
         return;
     }
-    Room* dest = exitPtr->GetDestination();
-    if (!dest) {
-        std::cout << "This exit leads nowhere.\n";
+    // Determinar la room de destino: exitPtr->GetDestinationFor(currentRoom)
+    Room* nextRoom = exitPtr->GetDestinationFor(currentRoom);
+    if (!nextRoom) {
+        std::cout << "This exit doesn't lead anywhere from here.\n";
         return;
     }
-    currentRoom = dest;
+    // Mover al nextRoom
+    currentRoom = nextRoom;
     playerDirection = "center";
-    std::cout << "You exit towards " << dir << " and arrive at " << dest->name << "\n";
+    std::cout << "You exit towards " << direction
+        << " and arrive at " << currentRoom->name << "\n";
     currentRoom->Look();
 }
+
 
 void Player::TakeItem(const std::string& itemName) {
     std::string searchName = toLower(itemName);

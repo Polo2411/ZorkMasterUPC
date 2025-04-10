@@ -1,8 +1,10 @@
+// exit.h
 #ifndef EXIT_H
 #define EXIT_H
-#include "key.h"
+
 #include "entity.h"
 #include "room.h"
+#include "key.h"
 
 enum ExitState { OPEN, CLOSED, LOCKED };
 
@@ -16,11 +18,13 @@ public:
     ExitState GetState() const;
     void SetState(ExitState newState);
 
-    void Open();   // Abre sin llave (para cofre, por ejemplo)
+    // Devuelve la room a la que ir si estás en 'current'
+    Room* GetDestinationFor(Room* current) const;
+
+    void Open();
     void Close();
     void Lock();
 
-    // Nuevos métodos que requieren llave
     void OpenWithKey(const Key* key);
     void CloseWithKey(const Key* key);
 
