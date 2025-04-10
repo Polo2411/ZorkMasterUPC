@@ -1,5 +1,8 @@
 #include "player.h"
 #include "exit.h"
+#include "sword.h"
+#include "health_potion.h"
+#include "enemy.h"
 #include "string_utils.h"
 #include <iostream>
 #include <algorithm>
@@ -163,10 +166,11 @@ Item* Player::FindItemInInventory(const std::string& itemName) {
     return nullptr;
 }
 
+// Modificamos ShowInventory para mostrar stats de Swords y Potions
 void Player::ShowInventory() const {
     std::vector<Item*> nonBags;
     std::vector<Bag*> bags;
-    // Separa los ítems del inventario.
+
     for (auto obj : inventory) {
         if (auto bag = dynamic_cast<Bag*>(obj)) {
             bags.push_back(bag);
@@ -176,11 +180,20 @@ void Player::ShowInventory() const {
         }
     }
     std::cout << "Inventory:\n";
-    // Mostrar primero los ítems que no son Bag.
     for (auto item : nonBags) {
-        std::cout << " - " << item->name << "\n";
+        // Mostramos la info
+        std::cout << " - " << item->name;
+        // Si es Sword, mostramos damage
+        if (auto sw = dynamic_cast<Sword*>(item)) {
+            std::cout << " [Damage: " << sw->GetDamage() << "]";
+        }
+        // Si es HealthPotion, mostramos heal
+        else if (auto hp = dynamic_cast<HealthPotion*>(item)) {
+            std::cout << " [Heal: " << hp->GetHealAmount() << "]";
+        }
+        std::cout << "\n";
     }
-    // Luego, para cada Bag, mostrarla y su contenido.
+    // Luego, Bags
     for (auto bag : bags) {
         std::cout << " - " << bag->name << "\n";
         std::cout << "   Contents of " << bag->name << ":\n";
@@ -246,4 +259,20 @@ bool Player::HasOpenBag() const {
     }
     return false;
 }
+
+void Player::AttackEnemy(Enemy* targetEnemy) {
+    if (!targetEnemy) return;
+    // Buscar si el Player tiene Sword
+    int damage = 1;
+    for (size_t i = 0; i < inventory.size(); i++) {
+        if (auto sw = dynamic_cast<Sword*>(inventory[i])) {
+            damage = sw->GetDamage();
+            break;
+        }
+    }
+    std::cout << "You attack " << targetEnemy->name
+        << " dealing " << damage << " damage.\n";
+    targetEnemy->TakeDamage(damage);
+}
+
 

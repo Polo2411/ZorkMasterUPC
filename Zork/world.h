@@ -5,6 +5,7 @@
 #include <vector>
 #include "room.h"
 #include "player.h"
+#include "enemy.h"   // para Enemy y subclases
 
 class World {
 public:
@@ -18,6 +19,9 @@ private:
     std::vector<Room*> rooms;
     Player* player;
 
+    // Contenedor de enemigos
+    std::vector<Enemy*> enemies;
+
     bool equalIgnoreCase(const std::string& a, const std::string& b) const;
 
     // Busca un Bag en la dirección actual o en el inventario
@@ -29,12 +33,12 @@ private:
     // Busca un Item en la sala/dirección actual o en el inventario
     class Item* findItem(const std::string& itemName);
 
+    // Métodos para abrir/cerrar Exits
     void openExit(class Exit* exitPtr);
     void closeExit(class Exit* exitPtr);
 
-    // Mensajes de error diferenciados para open/cerrar
-    void openSomething(const std::string& targetName);
-    void closeSomething(const std::string& targetName);
+    // Actualiza enemigos tras cada turno
+    void UpdateEnemies();
 };
 
 #endif // WORLD_H

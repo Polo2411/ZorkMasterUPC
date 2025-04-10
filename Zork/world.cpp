@@ -5,6 +5,8 @@
 #include "exit.h"
 #include "key.h"
 #include "item.h"
+#include "enemy.h"  // define Enemy, Demon, DemonKnight
+#include "player.h"
 #include "string_utils.h"
 #include <iostream>
 #include <sstream>
@@ -14,7 +16,6 @@
 #include <algorithm>
 #include <cctype>
 
-// Pasa el input a tokens en minúsculas
 std::vector<std::string> tokenize(const std::string& input) {
     std::istringstream iss(input);
     std::vector<std::string> tokens;
@@ -27,7 +28,7 @@ std::vector<std::string> tokenize(const std::string& input) {
 }
 
 World::World() {
-    // Creamos 2 salas
+    // 2 salas
     Room* roomOne = new Room("RoomOne", "This room is sparsely furnished.");
     Room* roomTwo = new Room("RoomTwo", "A second room with a peculiar atmosphere.");
 
@@ -41,18 +42,18 @@ World::World() {
     Key* key = new Key("Key", "A small key.", "west", roomTwo, roomOne);
     roomOne->AddEntity("west", key);
 
-    // Creamos UNA sola exit. 
+    // Exit
     Exit* exitOne = new Exit("Door", "A passage to another room.", roomOne, roomTwo);
     exitOne->SetState(CLOSED);
-
-    // Añadir la exitOne a RoomOne->"north"
     roomOne->AddEntity("north", exitOne);
-    // Y la MISMA exitOne a RoomTwo->"south"
     roomTwo->AddEntity("south", exitOne);
 
-    // RoomTwo
     HealthPotion* potion = new HealthPotion("HealthPotion", "Heals you quite a bit.", 50, "east", roomTwo);
     roomTwo->AddEntity("east", potion);
+
+    // Crear Demon en la segunda sala
+    Demon* demon = new Demon("Demon", "A fiendish creature from the underworld.", roomTwo);
+    enemies.push_back(demon);
 
     rooms.push_back(roomOne);
     rooms.push_back(roomTwo);
@@ -61,8 +62,12 @@ World::World() {
 }
 
 World::~World() {
-    for (auto r : rooms) {
-        delete r;
+    for (size_t i = 0; i < rooms.size(); i++) {
+        delete rooms[i];
+    }
+    // Liberar enemigos
+    for (size_t i = 0; i < enemies.size(); i++) {
+        delete enemies[i];
     }
     delete player;
 }
@@ -70,8 +75,8 @@ World::~World() {
 bool World::equalIgnoreCase(const std::string& a, const std::string& b) const {
     if (a.size() != b.size()) return false;
     for (size_t i = 0; i < a.size(); i++) {
-        if (std::tolower(static_cast<unsigned char>(a[i])) !=
-            std::tolower(static_cast<unsigned char>(b[i]))) {
+        if (std::tolower((unsigned char)a[i]) !=
+            std::tolower((unsigned char)b[i])) {
             return false;
         }
     }
@@ -79,54 +84,51 @@ bool World::equalIgnoreCase(const std::string& a, const std::string& b) const {
 }
 
 Bag* World::findBag(const std::string& containerName) {
-    // Buscar en inventario
+    // en el inventario
     auto inv = player->GetInventory();
-    for (auto i : inv) {
-        if (equalIgnoreCase(i->name, containerName)) {
-            return dynamic_cast<Bag*>(i);
+    for (size_t i = 0; i < inv.size(); i++) {
+        if (equalIgnoreCase(inv[i]->name, containerName)) {
+            return dynamic_cast<Bag*>(inv[i]);
         }
     }
-    // Buscar en la sala actual
+    // en la sala (dirección actual)
     auto ents = player->GetCurrentRoom()->GetEntities(player->GetPlayerDirection());
-    for (auto e : ents) {
-        if (e->type == ITEM && equalIgnoreCase(e->name, containerName)) {
-            return dynamic_cast<Bag*>(e);
+    for (size_t i = 0; i < ents.size(); i++) {
+        if (ents[i]->type == ITEM && equalIgnoreCase(ents[i]->name, containerName)) {
+            return dynamic_cast<Bag*>(ents[i]);
         }
     }
     return nullptr;
 }
 
-// Busca un Exit en la dirección actual
 Exit* World::findExit(const std::string& exitName) {
     auto ents = player->GetCurrentRoom()->GetEntities(player->GetPlayerDirection());
-    for (auto e : ents) {
-        if (e->type == EXIT && equalIgnoreCase(e->name, exitName)) {
-            return dynamic_cast<Exit*>(e);
+    for (size_t i = 0; i < ents.size(); i++) {
+        if (ents[i]->type == EXIT && equalIgnoreCase(ents[i]->name, exitName)) {
+            return dynamic_cast<Exit*>(ents[i]);
         }
     }
     return nullptr;
 }
 
-// Busca un Item (no solo Bag) en la dirección actual o en el inventario
 Item* World::findItem(const std::string& itemName) {
-    // Primero en inventario
+    // primero en inventario
     auto inv = player->GetInventory();
-    for (auto i : inv) {
-        if (equalIgnoreCase(i->name, itemName)) {
-            return i; // i es un Item*
+    for (size_t i = 0; i < inv.size(); i++) {
+        if (equalIgnoreCase(inv[i]->name, itemName)) {
+            return inv[i];
         }
     }
-    // Luego en la sala/dirección actual
+    // en sala
     auto ents = player->GetCurrentRoom()->GetEntities(player->GetPlayerDirection());
-    for (auto e : ents) {
-        if (e->type == ITEM && equalIgnoreCase(e->name, itemName)) {
-            return dynamic_cast<Item*>(e);
+    for (size_t i = 0; i < ents.size(); i++) {
+        if (ents[i]->type == ITEM && equalIgnoreCase(ents[i]->name, itemName)) {
+            return dynamic_cast<Item*>(ents[i]);
         }
     }
     return nullptr;
 }
 
-// Apertura de Exit (requerimos Key que apunte al Destination)
 void World::openExit(Exit* exitPtr) {
     if (!exitPtr) return;
     if (exitPtr->GetState() == OPEN) {
@@ -134,14 +136,14 @@ void World::openExit(Exit* exitPtr) {
         return;
     }
     if (exitPtr->GetState() == LOCKED) {
-        std::cout << "It's locked.\n";
+        std::cout << "It seems locked.\n";
         return;
     }
     bool hasKey = false;
     Item* chosenKey = nullptr;
     auto inv = player->GetInventory();
-    for (auto it : inv) {
-        if (auto realKey = dynamic_cast<Key*>(it)) {
+    for (size_t i = 0; i < inv.size(); i++) {
+        if (auto realKey = dynamic_cast<Key*>(inv[i])) {
             if (realKey->GetOpensRoom() == exitPtr->GetDestination()) {
                 hasKey = true;
                 chosenKey = realKey;
@@ -158,7 +160,6 @@ void World::openExit(Exit* exitPtr) {
         << " to open the " << exitPtr->name << ".\n";
 }
 
-// Cierre de Exit
 void World::closeExit(Exit* exitPtr) {
     if (!exitPtr) return;
     if (exitPtr->GetState() == CLOSED) {
@@ -172,8 +173,8 @@ void World::closeExit(Exit* exitPtr) {
     bool hasKey = false;
     Item* chosenKey = nullptr;
     auto inv = player->GetInventory();
-    for (auto it : inv) {
-        if (auto realKey = dynamic_cast<Key*>(it)) {
+    for (size_t i = 0; i < inv.size(); i++) {
+        if (auto realKey = dynamic_cast<Key*>(inv[i])) {
             if (realKey->GetOpensRoom() == exitPtr->GetDestination()) {
                 hasKey = true;
                 chosenKey = realKey;
@@ -198,11 +199,11 @@ void World::Run() {
         std::cout << "\n> ";
         std::string command;
         std::getline(std::cin, command);
-
         if (command == "quit" || command == "exit") {
             break;
         }
         ProcessCommand(command);
+        UpdateEnemies(); // Llamada tras cada comando
     }
 }
 
@@ -213,8 +214,8 @@ void World::ProcessCommand(const std::string& command) {
         return;
     }
 
-    // Si hay una Bag abierta, se bloquean "move", "exit", "drop"
     std::string verb = tokens[0];
+
     if (player->HasOpenBag()) {
         if (verb == "move" || verb == "exit" || verb == "drop") {
             std::cout << "You have an open bag. Close it before performing that action.\n";
@@ -222,28 +223,22 @@ void World::ProcessCommand(const std::string& command) {
         }
     }
 
-    // Definimos comandos
     std::map<std::string, std::function<void(const std::vector<std::string>&)>> cmdMap;
 
     cmdMap["look"] = [this](auto args) {
-        // "look" normal, o "look <item>"
         if (args.empty()) {
-            // Sin argumentos => look general
             player->GetCurrentRoom()->Look();
-            return;
         }
-        // Si hay un segundo token => "look sword", etc.
-        if (args.size() == 1) {
+        else if (args.size() == 1) {
             std::string itemName = args[0];
-            // Buscar item en la dirección actual o en el inventario
-            Item* foundItem = findItem(itemName);
-            if (!foundItem) {
+            Item* itemPtr = findItem(itemName);
+            if (!itemPtr) {
                 std::cout << "You don't see any " << itemName << " here.\n";
-                return;
             }
-            // Mostrar su nombre y descripción
-            std::cout << foundItem->name << "\n";
-            std::cout << foundItem->description << "\n";
+            else {
+                std::cout << itemPtr->name << "\n"
+                    << itemPtr->description << "\n";
+            }
         }
         else {
             std::cout << "Usage: look [itemName]\n";
@@ -314,22 +309,18 @@ void World::ProcessCommand(const std::string& command) {
             return;
         }
         std::string targetName = args[0];
-        // Primero buscar la Bag
         Bag* bagPtr = findBag(targetName);
         if (bagPtr) {
-            bagPtr->Use();  // abre la Bag
+            bagPtr->Use();
             return;
         }
-        // Luego buscar la Exit
         Exit* exitPtr = findExit(targetName);
         if (exitPtr) {
             openExit(exitPtr);
             return;
         }
-        // Si no es Bag ni Exit
-        // Mensajes diferenciados según "bag" o "exit"? 
-        // Como no sabemos qué intentaba el usuario (tal vez 'door'), decimos:
-        std::cout << "No exit here named " << targetName << ", and no bag named " << targetName << ".\n";
+        std::cout << "No exit here named " << targetName
+            << ", and no bag named " << targetName << ".\n";
         };
 
     cmdMap["close"] = [this](auto args) {
@@ -338,20 +329,18 @@ void World::ProcessCommand(const std::string& command) {
             return;
         }
         std::string targetName = args[0];
-        // Bag?
         Bag* bagPtr = findBag(targetName);
         if (bagPtr) {
             bagPtr->Close();
             return;
         }
-        // Exit?
         Exit* exitPtr = findExit(targetName);
         if (exitPtr) {
             closeExit(exitPtr);
             return;
         }
-        // Ni bag ni exit
-        std::cout << "No exit here, and no bag named " << targetName << ".\n";
+        std::cout << "No exit here named " << targetName
+            << ", and no bag named " << targetName << ".\n";
         };
 
     cmdMap["save"] = [this](auto args) {
@@ -388,13 +377,51 @@ void World::ProcessCommand(const std::string& command) {
         }
         };
 
-    // Ejecutar
-    tokens.erase(tokens.begin()); // quita el verb
-    auto it = cmdMap.find(verb);
+    // Comando "attack <enemy>"
+    cmdMap["attack"] = [this](auto args) {
+        if (args.empty()) {
+            std::cout << "Attack who?\n";
+            return;
+        }
+        std::string enemyName = args[0];
+        // Buscamos un Enemy con ese nombre en la sala
+        Room* curr = player->GetCurrentRoom();
+        Enemy* targetEnemy = nullptr;
+
+        // Recorremos children de la sala 
+        for (std::list<Entity*>::iterator it = curr->children.begin();
+            it != curr->children.end(); ++it)
+        {
+            Entity* ent = *it;
+            if (ent->type == CREATURE) {
+                Enemy* en = dynamic_cast<Enemy*>(ent);
+                if (en && equalIgnoreCase(en->name, enemyName)) {
+                    targetEnemy = en;
+                    break;
+                }
+            }
+        }
+        if (!targetEnemy) {
+            std::cout << "No enemy called " << enemyName << " here.\n";
+            return;
+        }
+        // Hacer que el player ataque
+        player->AttackEnemy(targetEnemy);
+        };
+
+    tokens.erase(tokens.begin());
+    std::map<std::string, std::function<void(const std::vector<std::string>&)>>::iterator it = cmdMap.find(verb);
     if (it != cmdMap.end()) {
         it->second(tokens);
     }
     else {
         std::cout << "I don't understand " << verb << "\n";
+    }
+}
+
+// Llamamos a Update de cada enemigo
+void World::UpdateEnemies() {
+    for (size_t i = 0; i < enemies.size(); i++) {
+        enemies[i]->Update(player);
     }
 }

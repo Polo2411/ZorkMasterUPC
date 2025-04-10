@@ -39,6 +39,8 @@ public:
     bool CanCarry(Item* obj) const;
     bool HasOpenBag() const;
 
+    void AttackEnemy(class Enemy* targetEnemy);
+
 
 private:
     Room* currentRoom;
