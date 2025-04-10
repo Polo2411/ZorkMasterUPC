@@ -13,7 +13,7 @@ Enemy::Enemy(const std::string& name,
     Room* startRoom)
     : Creature(name, description, startRoom)
 {
-    // Podrías forzar health = 100 si lo deseas
+
 }
 
 void Enemy::TakeDamage(int dmg) {
@@ -154,14 +154,14 @@ Vergil::Vergil(const std::string& name,
     inDevilTrigger(false),
     devilTriggerRounds(0)
 {
-    health = 120;
+    health = 140;
 }
 
 void Vergil::Attack(Creature* target) {
     // Aumentamos el contador de ataques
     consecutiveAttacks++;
 
-    int baseDamage = 15;
+    int baseDamage = 20;
     int dmg = baseDamage;
     if (inDevilTrigger) {
         dmg = (int)(baseDamage * 1.5f);

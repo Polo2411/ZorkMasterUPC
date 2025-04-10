@@ -36,53 +36,428 @@ std::vector<std::string> tokenize(const std::string& input) {
 }
 
 // ------------------------------------
-// Constructor: creamos rooms, items, demonios
+// Constructor: "Devil May Zork" scenario
 // ------------------------------------
-World::World() {
-    Room* roomOne = new Room("RoomOne", "A simple room with minimal furniture.");
-    Room* roomTwo = new Room("RoomTwo", "A second room with a strange aura.");
+World::World()
+{
+    isGameOver = false;
+    std::cout << "Welcome to Devil May Zork!\n"
+        << "You are Dante, the legendary devil hunter and son of Sparda.\n"
+        << "Your mission is to rid this cursed castle of demons...\n"
+        << "Your brother, Vergil, awaits in the deepest chamber.\n"
+        << "Defeat him to fulfill your destiny!\n\n";
 
-    // En RoomOne
-    Sword* sword = new Sword("Sword", "A shiny sword on the floor.", 20, "east", roomOne);
-    roomOne->AddEntity("east", sword);
+    // ================
+    // MAIN HALL
+    // ================
+    Room* mainHall = new Room(
+        "Main Hall",
+        "A grandiose entrance hall with towering pillars. The air crackles with demonic energy."
+    );
 
-    Bag* bag = new Bag("Bag", "A sturdy leather bag.", 5, "south", roomOne);
-    roomOne->AddEntity("south", bag);
+    // Items en Main Hall
+    Sword* sword = new Sword(
+        "DevilSword",
+        "A broadsword gleaming with faint demonic energy.",
+        20,
+        "south",
+        mainHall
+    );
+    mainHall->AddEntity("south", sword);
 
-    Key* key = new Key("Key", "A small key.", "west", roomTwo, roomOne);
-    roomOne->AddEntity("west", key);
+    Bag* bag = new Bag(
+        "HunterBag",
+        "A rugged leather bag with enough space for multiple items.",
+        5,
+        "north",
+        mainHall
+    );
+    mainHall->AddEntity("north", bag);
 
-    // Gun y Bullet
-    Gun* gun = new Gun("Gun", "A powerful firearm that deals 30 damage.", 30, "center", roomOne);
-    roomOne->AddEntity("center", gun);
+    // Salidas:
+    //  - West => Devil Kitchen (abierta)
+    //  - East => Long Hallway (cerrada)
 
-    Bullet* bullet = new Bullet("Bullet", "A single bullet for a gun.", "north", roomOne);
-    roomOne->AddEntity("north", bullet);
+    // ================
+    // DEVIL KITCHEN (west of Main Hall)
+    // ================
+    Room* devilKitchen = new Room(
+        "Devil Kitchen",
+        "A decrepit kitchen that reeks of sulfur. Broken utensils lie everywhere."
+    );
 
-    // Exit para conectar RoomOne <-> RoomTwo
-    Exit* exitOne = new Exit("Door", "A passage to another room.", roomOne, roomTwo);
-    exitOne->SetState(CLOSED);
-    roomOne->AddEntity("north", exitOne);
-    roomTwo->AddEntity("south", exitOne);
+    Exit* kitchenExit = new Exit(
+        "KitchenDoor",
+        "A battered wooden door leading to the Devil Kitchen.",
+        mainHall,
+        devilKitchen
+    );
+    kitchenExit->SetState(OPEN);
+    mainHall->AddEntity("west", kitchenExit);
+    devilKitchen->AddEntity("east", kitchenExit);
 
-    // RoomTwo
-    HealthPotion* potion = new HealthPotion("HealthPotion", "Heals you quite a bit.", 50, "east", roomTwo);
-    roomTwo->AddEntity("east", potion);
+    // Demon en la Devil Kitchen
+    Demon* kitchenDemon = new Demon(
+        "KitchenDemon",
+        "A lesser demon prowling around the kitchen.",
+        devilKitchen
+    );
+    enemies.push_back(kitchenDemon);
 
-    VitalityPotion* vit = new VitalityPotion("VitalityPotion", "Raises max HP by 20 and heals 20 HP.", 20, 20, "west", roomTwo);
-    roomTwo->AddEntity("west", vit);
+    // Items en Devil Kitchen
+    Key* kitchenKey = new Key(
+        "KeyDevilHallway",
+        "A rusty key. Might fit the locked hallway door in the Main Hall.",
+        "south",
+        /* opensRoom= */ nullptr,
+        devilKitchen
+    );
+    devilKitchen->AddEntity("south", kitchenKey);
 
-    Upgrader* up = new Upgrader("Upgrader", "Allows you to upgrade a Sword or Gun by +10 damage.", "south", roomTwo);
-    roomTwo->AddEntity("south", up);
+    HealthPotion* kitchenPotion = new HealthPotion(
+        "KitchenHealthPotion",
+        "A pungent vial that restores health.",
+        50,
+        "north",
+        devilKitchen
+    );
+    devilKitchen->AddEntity("north", kitchenPotion);
 
-    // Enemigo demon en roomTwo
-    Demon* demon = new Demon("Demon", "A fiendish underworld creature.", roomOne);
-    enemies.push_back(demon);
+    // ================
+    // LONG HALLWAY (east of Main Hall, locked)
+    // ================
+    Room* longHallway = new Room(
+        "Long Hallway",
+        "A long corridor lined with ominous portraits. The atmosphere feels tense."
+    );
 
-    rooms.push_back(roomOne);
-    rooms.push_back(roomTwo);
+    Exit* hallwayExit = new Exit(
+        "LongHallwayDoor",
+        "A heavy iron door leading to the Long Hallway.",
+        mainHall,
+        longHallway
+    );
+    hallwayExit->SetState(CLOSED);
 
-    player = new Player("Player", "An intrepid adventurer.", roomOne);
+    // Vinculamos la key del Kitchen para abrir este pasaje
+    kitchenKey->SetOpensRoom(longHallway);
+
+    mainHall->AddEntity("east", hallwayExit);
+    longHallway->AddEntity("west", hallwayExit);
+
+    // Demon en Long Hallway
+    Demon* hallwayDemon = new Demon(
+        "HallwayDemon",
+        "A lurking demon patrolling the corridor.",
+        longHallway
+    );
+    enemies.push_back(hallwayDemon);
+
+    // Items en Long Hallway
+    Bullet* hallwayBullet = new Bullet(
+        "HallwayBullet",
+        "A single bullet for a gun.",
+        "west",
+        longHallway
+    );
+    longHallway->AddEntity("west", hallwayBullet);
+
+    Gun* hallwayGun = new Gun(
+        "DevilGun",
+        "An old revolver engraved with demonic markings.",
+        30,
+        "west",
+        longHallway
+    );
+    longHallway->AddEntity("west", hallwayGun);
+
+    Upgrader* hallwayUp = new Upgrader(
+        "ArcaneUpgrader",
+        "A small arcane device that can boost a weapon's damage by +10.",
+        "south",
+        longHallway
+    );
+    longHallway->AddEntity("south", hallwayUp);
+
+    // Salidas en Long Hallway => north (cerrada), east (abierta)
+
+    // ================
+    // DEVIL BATHROOM (east of Long Hallway, open)
+    // ================
+    Room* devilBathroom = new Room(
+        "Devil Bathroom",
+        "A foul restroom with shattered mirrors and demonic graffiti on the walls."
+    );
+    Exit* bathroomExit = new Exit(
+        "BathroomDoor",
+        "A cracked door leading to a horrifying bathroom.",
+        longHallway,
+        devilBathroom
+    );
+    bathroomExit->SetState(OPEN);
+    longHallway->AddEntity("east", bathroomExit);
+    devilBathroom->AddEntity("west", bathroomExit);
+
+    Key* bathroomKey = new Key(
+        "KeyKnightChambers",
+        "A silver key carved with knightly motifs.",
+        "north",
+        nullptr,
+        devilBathroom
+    );
+    devilBathroom->AddEntity("north", bathroomKey);
+
+    VitalityPotion* bathroomVP = new VitalityPotion(
+        "BathroomVitalityPotion",
+        "Increases your max HP by 20 and heals 20 HP.",
+        20,
+        20,
+        "east",
+        devilBathroom
+    );
+    devilBathroom->AddEntity("east", bathroomVP);
+
+    // ================
+    // KNIGHT'S CHAMBERS (north from Long Hallway)
+    // ================
+    Room* knightsChambers = new Room(
+        "Knight's Chambers",
+        "An imposing chamber guarded by ghostly suits of armor. A grim aura hangs in the air."
+    );
+    Exit* knightsExit = new Exit(
+        "KnightDoor",
+        "A fortified gate leading to the Knight's Chambers.",
+        longHallway,
+        knightsChambers
+    );
+    knightsExit->SetState(CLOSED);
+    bathroomKey->SetOpensRoom(knightsChambers);
+
+    longHallway->AddEntity("north", knightsExit);
+    knightsChambers->AddEntity("south", knightsExit);
+
+    DemonKnight* knight = new DemonKnight(
+        "DevilKnight",
+        "A formidable demonic knight in black armor.",
+        knightsChambers
+    );
+    enemies.push_back(knight);
+
+    Bullet* kcBulletN = new Bullet(
+        "KnightBulletN",
+        "A single bullet for a gun.",
+        "north",
+        knightsChambers
+    );
+    knightsChambers->AddEntity("north", kcBulletN);
+
+    Bullet* kcBulletS = new Bullet(
+        "KnightBulletS",
+        "Another bullet rolling on the floor.",
+        "south",
+        knightsChambers
+    );
+    knightsChambers->AddEntity("south", kcBulletS);
+
+    Upgrader* kcUp = new Upgrader(
+        "KnightUpgrader",
+        "Infused with greater power for forging mightier weapons.",
+        "east",
+        knightsChambers
+    );
+    knightsChambers->AddEntity("east", kcUp);
+
+    HealthPotion* kcHP = new HealthPotion(
+        "KnightHealthPotion",
+        "A potent healing brew.",
+        50,
+        "west",
+        knightsChambers
+    );
+    knightsChambers->AddEntity("west", kcHP);
+
+    // ================
+    // DEVIL GUEST ROOM (east from Devil Kitchen)
+    // ================
+    Room* devilGuestRoom = new Room(
+        "Devil Guest Room",
+        "A dusty guest room reeking of demonic presence."
+    );
+    Exit* guestExit = new Exit(
+        "GuestDoor",
+        "A battered door leading to the Guest Room.",
+        devilKitchen,
+        devilGuestRoom
+    );
+    guestExit->SetState(OPEN);
+    devilKitchen->AddEntity("east", guestExit);
+    devilGuestRoom->AddEntity("west", guestExit);
+
+    // Items en Devil Guest Room
+    VitalityPotion* guestVP = new VitalityPotion(
+        "GuestVitalityPotion",
+        "Augments your maximum life by 20 and heals 20 HP.",
+        20,
+        20,
+        "north",
+        devilGuestRoom
+    );
+    devilGuestRoom->AddEntity("north", guestVP);
+
+    Bullet* guestBullet = new Bullet(
+        "GuestBullet",
+        "A single bullet left behind.",
+        "north",
+        devilGuestRoom
+    );
+    devilGuestRoom->AddEntity("north", guestBullet);
+
+    HealthPotion* guestHP = new HealthPotion(
+        "GuestHealthPotion",
+        "Heals you quite a bit.",
+        50,
+        "west",
+        devilGuestRoom
+    );
+    devilGuestRoom->AddEntity("west", guestHP);
+
+    Key* guestKey = new Key(
+        "KeyDeathHall",
+        "An ornate key for a door deeper in the castle.",
+        "south",
+        nullptr,
+        devilGuestRoom
+    );
+    devilGuestRoom->AddEntity("south", guestKey);
+
+    // ================
+    // DEATH HALL (north from Devil Guest Room)
+    // ================
+    Room* deathHall = new Room(
+        "Death Hall",
+        "A grim chamber filled with tortured wails. Evil saturates the walls."
+    );
+    Exit* deathHallExit = new Exit(
+        "DeathHallDoor",
+        "A massive door leading to the Death Hall.",
+        devilGuestRoom,
+        deathHall
+    );
+    deathHallExit->SetState(CLOSED);
+    guestKey->SetOpensRoom(deathHall);
+
+    devilGuestRoom->AddEntity("north", deathHallExit);
+    deathHall->AddEntity("south", deathHallExit);
+
+    Demon* dhDemon = new Demon(
+        "DeathHallDemon",
+        "A hulking beast prowling the Death Hall.",
+        deathHall
+    );
+    enemies.push_back(dhDemon);
+
+    DemonKnight* dhKnight = new DemonKnight(
+        "DeathHallKnight",
+        "A grim champion overshadowing lesser fiends.",
+        deathHall
+    );
+    enemies.push_back(dhKnight);
+
+    HealthPotion* dhHP = new HealthPotion(
+        "DeathHallHealthPotion",
+        "Another vile brew that restores health.",
+        50,
+        "south",
+        deathHall
+    );
+    deathHall->AddEntity("south", dhHP);
+
+    Key* dhKey = new Key(
+        "KeyKingsRoom",
+        "The final key, etched with regal inscriptions.",
+        "south",
+        nullptr,
+        deathHall
+    );
+    deathHall->AddEntity("south", dhKey);
+
+    Bullet* dhBulletE = new Bullet(
+        "RoyalBulletE",
+        "A bullet with a faint royal crest.",
+        "east",
+        deathHall
+    );
+    deathHall->AddEntity("east", dhBulletE);
+
+    VitalityPotion* dhVP = new VitalityPotion(
+        "RoyalVitalityPotion",
+        "Enhances your maximum life by 20 and heals 20 HP.",
+        20,
+        20,
+        "north",
+        deathHall
+    );
+    deathHall->AddEntity("north", dhVP);
+
+    Bullet* dhBulletW = new Bullet(
+        "LostBulletW",
+        "A bullet hidden behind a broken statue.",
+        "west",
+        deathHall
+    );
+    deathHall->AddEntity("west", dhBulletW);
+
+    Upgrader* dhUp = new Upgrader(
+        "FinalUpgrader",
+        "A final device of augmentation, brimming with malevolent energy.",
+        "west",
+        deathHall
+    );
+    deathHall->AddEntity("west", dhUp);
+
+    // ================
+    // KING'S ROOM (north from Death Hall)
+    // ================
+    Room* kingsRoom = new Room(
+        "King's Room",
+        "An opulent throne room corrupted by demonic influences."
+    );
+    Exit* kingsExit = new Exit(
+        "KingsRoomDoor",
+        "A grand door leading to the King's Room.",
+        deathHall,
+        kingsRoom
+    );
+    kingsExit->SetState(CLOSED);
+    dhKey->SetOpensRoom(kingsRoom);
+
+    deathHall->AddEntity("north", kingsExit);
+    kingsRoom->AddEntity("south", kingsExit);
+
+    // Vergil
+    Vergil* vergil = new Vergil(
+        "Vergil",
+        "Your brother, a powerful demon swordsman, waiting in the heart of Mundus's castle.",
+        kingsRoom
+    );
+    enemies.push_back(vergil);
+
+    // Agregamos las salas al vector
+    rooms.push_back(mainHall);
+    rooms.push_back(devilKitchen);
+    rooms.push_back(longHallway);
+    rooms.push_back(devilBathroom);
+    rooms.push_back(knightsChambers);
+    rooms.push_back(devilGuestRoom);
+    rooms.push_back(deathHall);
+    rooms.push_back(kingsRoom);
+
+    // Por último, creamos al player "Dante"
+    player = new Player(
+        "Dante",
+        "The legendary devil hunter, son of Sparda.",
+        mainHall
+    );
 }
 
 // ------------------------------------
@@ -235,15 +610,16 @@ void World::Run() {
     std::cout << "Welcome to Zork\n";
     player->GetCurrentRoom()->Look();
 
-    while (true) {
+    while (!isGameOver) {
         std::cout << "\n> ";
         std::string command;
         std::getline(std::cin, command);
-        if (command == "quit" || command == "exit") {
+        if (command == "quit") {
             break;
         }
         ProcessCommand(command);
     }
+    std::cout << "Exiting game...\n";
 }
 
 // ------------------------------------
@@ -652,6 +1028,7 @@ void World::ProcessCommand(const std::string& command) {
 
         // Enemigos actualizan su IA
         UpdateEnemies();
+        CheckGameState();
     }
 }
 
@@ -661,5 +1038,33 @@ void World::ProcessCommand(const std::string& command) {
 void World::UpdateEnemies() {
     for (auto e : enemies) {
         e->Update(player);
+    }
+}
+
+void World::CheckGameState() {
+    // 1) Si Dante murió => game over
+    if (!player->IsAlive()) {
+        std::cout << "You have been slain... Game Over!\n";
+        isGameOver = true;
+        return;
+    }
+    // 2) Comprobar si Vergil u otro enemigo principal (boss) fue vencido
+    //    (por ejemplo, buscas un enemigo con nombre "Vergil" en 'enemies')
+    bool vergilDefeated = false;
+    for (Enemy* e : enemies) {
+        // si es Vergil
+        if (e->name == "Vergil") {
+            if (!e->IsAlive()) {
+                vergilDefeated = true;
+                break;
+            }
+        }
+    }
+    if (vergilDefeated) {
+        std::cout << "Vergil collapses, swearing vengeance as he disappears into the shadows.\n"
+            << "Congratulations! You have freed the castle of Mundus's lingering threat!\n"
+            << "Game Over - You Win!\n";
+        isGameOver = true;
+        return;
     }
 }

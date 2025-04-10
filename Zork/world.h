@@ -17,11 +17,12 @@ public:
 
     void Run();
     void ProcessCommand(const std::string& command);
+    void CheckGameState();
 
 private:
     std::vector<Room*> rooms;
     Player* player;
-
+    bool isGameOver;
     // Enemigos
     std::vector<Enemy*> enemies;
 

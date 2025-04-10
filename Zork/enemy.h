@@ -16,7 +16,7 @@ public:
     virtual void Update(Player* player); // IA
 
 protected:
-    // Podrías meter dev Trigger en subclases
+    
 };
 
 // Demon

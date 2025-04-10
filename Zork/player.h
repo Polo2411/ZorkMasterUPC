@@ -67,7 +67,7 @@ public:
     void SetMaxHealth(int m);
     int GetMaxHealth() const;
 
-    // Nuevo: mecánica Devil Trigger
+    // Mecánica Devil Trigger
     void ActivateDevilTrigger();     // Llamado con "transform" cuando cumpla condiciones
     bool IsInDevilTrigger() const;   // Saber si está activo
     void OnTurnPassed();             // Llamado cada turno, para decrementar devilTriggerRounds

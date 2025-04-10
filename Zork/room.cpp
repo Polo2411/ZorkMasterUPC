@@ -1,4 +1,5 @@
 #include "room.h"
+#include "enemy.h"
 #include "string_utils.h"
 #include <iostream>
 #include <algorithm>
@@ -44,7 +45,7 @@ bool Room::HasDirection(const std::string& direction) const {
 void Room::Look() const {
     std::cout << name << "\n" << description << "\n";
 
-    // Recorremos cada dirección
+    // 1) Mostramos los Items y Exits en cada dirección, como ya lo hacías:
     for (std::map<std::string, std::vector<Entity*>>::const_iterator it = directions.begin();
         it != directions.end(); ++it)
     {
@@ -82,7 +83,24 @@ void Room::Look() const {
             std::cout << ".\n";
         }
     }
+
+    // 2) MOSTRAR cualquier criatura (Enemy o NPC) que exista en children
+    //    (si no los tienes en direcciones).
+    bool anyCreature = false;
+    for (Entity* e : children) {
+        // e->type == CREATURE => es o un Enemy o un NPC
+        // Podríamos distinguir con dynamic_cast<NPC*>(e)...
+        if (e->type == CREATURE) {
+            if (dynamic_cast<Enemy*>(e)) {
+                std::cout << "You also sense a hostile presence: "
+                    << e->name << ".\n";
+            }
+            anyCreature = true;
+        }
+    }
+    // Si no encontramos criaturas, no hace falta mensaje extra.
 }
+
 
 const std::map<std::string, std::vector<Entity*>>& Room::GetDirections() const {
     return directions;
