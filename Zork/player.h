@@ -57,23 +57,34 @@ public:
     // Ver si hay una Bag abierta
     bool HasOpenBag() const;
 
-    // Atacar a un enemigo cuerpo a cuerpo
+    // Atacar cuerpo a cuerpo
     void AttackEnemy(Enemy* targetEnemy);
 
-    // Disparar a un enemigo con Gun (si se tiene)
+    // Disparar con Gun
     void ShootEnemy(Enemy* targetEnemy);
 
     // Manejo de vida máxima
     void SetMaxHealth(int m);
     int GetMaxHealth() const;
 
+    // Nuevo: mecánica Devil Trigger
+    void ActivateDevilTrigger();     // Llamado con "transform" cuando cumpla condiciones
+    bool IsInDevilTrigger() const;   // Saber si está activo
+    void OnTurnPassed();             // Llamado cada turno, para decrementar devilTriggerRounds
+
 private:
     Room* currentRoom;
     std::string playerDirection;
     std::vector<Item*> inventory;
 
-    // Vida máxima
     int maxHealth;
+
+    // =====================
+    // DEVIL TRIGGER FIELDS
+    // =====================
+    int  consecutiveAttacks;   // cuántas veces ha atacado seguidas
+    bool inDevilTrigger;
+    int  devilTriggerRounds;   // cuántos turnos dura
 };
 
 #endif // PLAYER_H

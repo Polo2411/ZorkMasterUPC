@@ -10,18 +10,23 @@
 #include <cctype>
 
 Player::Player(const std::string& name, const std::string& description, Room* startRoom)
-    : Creature(name, description, startRoom), currentRoom(startRoom), playerDirection("center")
+    : Creature(name, description, startRoom),
+    currentRoom(startRoom),
+    playerDirection("center"),
+    maxHealth(100),
+    consecutiveAttacks(0),
+    inDevilTrigger(false),
+    devilTriggerRounds(0)
 {
     type = PLAYER;
-    maxHealth = 100;
     health = 100;
 }
 
-// Mover en la sala
+// ===========================
+// MOVEMENT / ITEM MANAGEMENT
+// ===========================
 void Player::Move(const std::string& direction) {
     std::string dir = toLower(direction);
-    // Opcional: si (dir == playerDirection) => no moverse
-
     if (!currentRoom->HasDirection(dir)) {
         std::cout << "That direction doesn't exist in this room.\n";
         return;
@@ -62,7 +67,6 @@ void Player::Move(const std::string& direction) {
     }
 }
 
-// Cruzar la Exit
 void Player::ExitRoom(const std::string& direction) {
     auto ents = currentRoom->GetEntities(direction);
     Exit* exitPtr = nullptr;
@@ -92,7 +96,6 @@ void Player::ExitRoom(const std::string& direction) {
     currentRoom->Look();
 }
 
-// Tomar un ítem normal
 void Player::TakeItem(const std::string& itemName) {
     std::string searchName = toLower(itemName);
     auto ents = currentRoom->GetEntities(GetPlayerDirection());
@@ -125,7 +128,6 @@ void Player::TakeItem(const std::string& itemName) {
     }
 }
 
-// Soltar un ítem
 void Player::DropItem(const std::string& itemName) {
     std::string searchName = toLower(itemName);
     auto it = std::find_if(inventory.begin(), inventory.end(),
@@ -140,7 +142,6 @@ void Player::DropItem(const std::string& itemName) {
     std::cout << "You dropped " << itemName << " at " << GetPlayerDirection() << "\n";
 }
 
-// Insertar ítem al inventario
 void Player::InsertItemToInventory(Item* item) {
     if (!item) return;
     if (CanCarry(item)) {
@@ -154,7 +155,6 @@ void Player::InsertItemToInventory(Item* item) {
     }
 }
 
-// Quitar un ítem del inventario
 void Player::RemoveItemFromInventory(Item* item) {
     auto it = std::find(inventory.begin(), inventory.end(), item);
     if (it != inventory.end()) {
@@ -172,7 +172,6 @@ Item* Player::FindItemInInventory(const std::string& itemName) {
     return nullptr;
 }
 
-// Mostrar inventario, stats
 void Player::ShowInventory() const {
     std::vector<Item*> nonBags;
     std::vector<Bag*> bags;
@@ -188,7 +187,7 @@ void Player::ShowInventory() const {
     std::cout << "Inventory:\n";
     for (auto item : nonBags) {
         std::cout << " - " << item->name;
-        // Ej.: si es Sword
+        // Si es Sword
         if (auto sw = dynamic_cast<Sword*>(item)) {
             std::cout << " [Damage: " << sw->GetDamage() << "]";
         }
@@ -197,8 +196,6 @@ void Player::ShowInventory() const {
             std::cout << " [Damage: " << g->GetDamage()
                 << ", Ammo: " << g->GetAmmoCount() << "]";
         }
-        // Si es HealthPotion
-        // ...
         std::cout << "\n";
     }
     // Bags
@@ -222,22 +219,23 @@ void Player::SetPlayerDirection(const std::string& dir) {
 }
 
 std::vector<Item*> Player::GetInventory() const {
-    return inventory; // copia
+    return inventory;
 }
 
-// Muestra la vida actual y el inventario
 void Player::Status() const {
     std::cout << "=== Player Status ===\n";
     std::cout << "Name: " << name << "\n";
-    std::cout << "Health: " << GetHealth()
-        << " / " << maxHealth << "\n";
+    std::cout << "Health: " << health << " / " << maxHealth << "\n";
+    if (inDevilTrigger) {
+        std::cout << "(Devil Trigger active: " << devilTriggerRounds
+            << " turn(s) left)\n";
+    }
     std::cout << "Location: " << currentRoom->name
         << ", at " << playerDirection << "\n";
     ShowInventory();
     std::cout << "=====================\n";
 }
 
-// Máx 2 items si no son Bag
 bool Player::CanCarry(Item* obj) const {
     if (dynamic_cast<Bag*>(obj)) {
         return true;
@@ -270,27 +268,49 @@ bool Player::HasOpenBag() const {
     return false;
 }
 
-// Atacar enemigo con daño base 1 o daño de Sword
+// ============================
+// DEVIL TRIGGER MECHANICS
+// ============================
 void Player::AttackEnemy(Enemy* targetEnemy) {
     if (!targetEnemy) return;
+
+    // Sumar a consecutiveAttacks
+    consecutiveAttacks++;
+
+    // Chequear si se alcanzó 3
+    if (consecutiveAttacks == 3 && !inDevilTrigger) {
+        std::cout << "You feel a surge of power! You can now 'transform' to activate Devil Trigger.\n";
+    }
+
     int damage = 1;
     // Buscar Sword
-    for (size_t i = 0; i < inventory.size(); i++) {
-        if (auto sw = dynamic_cast<Sword*>(inventory[i])) {
+    for (auto& obj : inventory) {
+        if (auto sw = dynamic_cast<Sword*>(obj)) {
             damage = sw->GetDamage();
             break;
         }
     }
+
+    // Si Devil Trigger está activo => +50% damage (redondeo)
+    if (inDevilTrigger) {
+        damage = (int)(damage * 1.5f);
+    }
+
     std::cout << "You attack " << targetEnemy->name
         << " dealing " << damage << " damage.\n";
     targetEnemy->TakeDamage(damage);
 }
 
-// Dispara a un enemigo usando Gun (si hay ammo)
 void Player::ShootEnemy(Enemy* targetEnemy) {
     if (!targetEnemy) return;
-    // Ver si tenemos Gun
-    // (puede estar en inventory directamente, o en Bag si expandes lógica)
+
+    // Sumar consecutiveAttacks
+    consecutiveAttacks++;
+    if (consecutiveAttacks == 3 && !inDevilTrigger) {
+        std::cout << "You feel a surge of power! You can now 'transform' to activate Devil Trigger.\n";
+    }
+
+    // Buscar Gun
     Gun* gunPtr = nullptr;
     for (auto it : inventory) {
         if (auto g = dynamic_cast<Gun*>(it)) {
@@ -302,26 +322,57 @@ void Player::ShootEnemy(Enemy* targetEnemy) {
         std::cout << "You have no gun to shoot with.\n";
         return;
     }
-    // Ver si hay ammo
     if (gunPtr->GetAmmoCount() <= 0) {
         std::cout << "You have no bullets!\n";
         return;
     }
-    // Consumir 1 bala y hacer daño
-    gunPtr->AddAmmo(-1); // Resta 1
+    // Consumir 1 bala
+    gunPtr->AddAmmo(-1);
+
     int dmg = gunPtr->GetDamage();
+    if (inDevilTrigger) {
+        dmg = (int)(dmg * 1.5f);
+    }
+
     std::cout << "You shoot " << targetEnemy->name
         << " dealing " << dmg << " damage!\n";
     targetEnemy->TakeDamage(dmg);
 }
 
+// Activar la forma demoníaca
+void Player::ActivateDevilTrigger() {
+    // Reseteamos consecutiveAttacks, activamos inDevilTrigger y devilTriggerRounds=2
+    inDevilTrigger = true;
+    devilTriggerRounds = 2;
+    consecutiveAttacks = 0;
+    std::cout << "You unleash your Devil Trigger! (+50% damage for 2 turns)\n";
+}
+
+bool Player::IsInDevilTrigger() const {
+    return inDevilTrigger;
+}
+
+// Llamado al final de cada turno (desde World) para reducir devilTriggerRounds
+void Player::OnTurnPassed() {
+    if (inDevilTrigger) {
+        devilTriggerRounds--;
+        if (devilTriggerRounds <= 0) {
+            inDevilTrigger = false;
+            std::cout << "Your Devil Trigger wears off...\n";
+        }
+    }
+}
+
+// ============================
 // Manejo de vida máxima
+// ============================
 void Player::SetMaxHealth(int m) {
     maxHealth = m;
     if (health > maxHealth) {
         health = maxHealth;
     }
 }
+
 int Player::GetMaxHealth() const {
     return maxHealth;
 }

@@ -9,8 +9,6 @@ Sword::Sword(const std::string& name,
     : Item(name, description, direction, parent),
     damage(damage)
 {
-    // Antes, forzabas "this->damage = 20;"
-    // Ahora permitimos usar 'damage' que nos pasen.
 }
 
 void Sword::Use() {

@@ -5,10 +5,10 @@
 #include <vector>
 #include "room.h"
 #include "player.h"
-#include "enemy.h"   
+#include "enemy.h"
 
-// Declaraciones de forward si quieres: class Gun; class Bullet; class VitalityPotion; class Upgrader;
-// No estríctamente necesario si incluyes sus headers en world.cpp
+// Forward declarations si quieres
+// class Gun; class Bullet; class VitalityPotion; class Upgrader;
 
 class World {
 public:
@@ -22,25 +22,25 @@ private:
     std::vector<Room*> rooms;
     Player* player;
 
-    // Contenedor de enemigos
+    // Enemigos
     std::vector<Enemy*> enemies;
 
     bool equalIgnoreCase(const std::string& a, const std::string& b) const;
 
-    // Busca un Bag en la dirección actual o en el inventario
+    // Buscar Bag en inventario o dirección
     class Bag* findBag(const std::string& containerName);
 
-    // Busca un Exit en la dirección actual
+    // Buscar Exit en dirección
     class Exit* findExit(const std::string& exitName);
 
-    // Busca un Item en la sala/dirección actual o en el inventario
+    // Buscar Item en inventario o dirección
     class Item* findItem(const std::string& itemName);
 
-    // Métodos para abrir/cerrar Exits
+    // Abrir/cerrar Exit
     void openExit(class Exit* exitPtr);
     void closeExit(class Exit* exitPtr);
 
-    // Actualiza enemigos tras cada turno
+    // Actualizar enemigos tras cada turno
     void UpdateEnemies();
 };
 

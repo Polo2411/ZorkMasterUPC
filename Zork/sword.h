@@ -14,7 +14,7 @@ public:
     virtual void Use() override;
 
     int  GetDamage() const;
-    void SetDamage(int dmg); // NUEVO
+    void SetDamage(int dmg); // para Upgrader
 
 private:
     int damage;

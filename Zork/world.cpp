@@ -5,13 +5,14 @@
 #include "exit.h"
 #include "key.h"
 #include "item.h"
-#include "enemy.h"        // Enemy, Demon, DemonKnight
+#include "enemy.h"        
 #include "player.h"
 #include "string_utils.h"
 #include "gun.h"
 #include "bullet.h"
 #include "vitality_potion.h"
 #include "upgrader.h"
+
 #include <iostream>
 #include <sstream>
 #include <map>
@@ -20,6 +21,9 @@
 #include <algorithm>
 #include <cctype>
 
+// ------------------------------------
+// tokenize: convertir la entrada a minúsculas
+// ------------------------------------
 std::vector<std::string> tokenize(const std::string& input) {
     std::istringstream iss(input);
     std::vector<std::string> tokens;
@@ -31,75 +35,72 @@ std::vector<std::string> tokenize(const std::string& input) {
     return tokens;
 }
 
+// ------------------------------------
+// Constructor: creamos rooms, items, demonios
+// ------------------------------------
 World::World() {
-    // Creamos 2 salas
     Room* roomOne = new Room("RoomOne", "A simple room with minimal furniture.");
     Room* roomTwo = new Room("RoomTwo", "A second room with a strange aura.");
 
-    // Objetos en RoomOne
-    // 1) Sword (ya existente)
+    // En RoomOne
     Sword* sword = new Sword("Sword", "A shiny sword on the floor.", 20, "east", roomOne);
     roomOne->AddEntity("east", sword);
 
-    // 2) Bag (ya existente)
     Bag* bag = new Bag("Bag", "A sturdy leather bag.", 5, "south", roomOne);
     roomOne->AddEntity("south", bag);
 
-    // 3) Key (ya existente)
     Key* key = new Key("Key", "A small key.", "west", roomTwo, roomOne);
     roomOne->AddEntity("west", key);
 
-    // 4) Gun
+    // Gun y Bullet
     Gun* gun = new Gun("Gun", "A powerful firearm that deals 30 damage.", 30, "center", roomOne);
     roomOne->AddEntity("center", gun);
 
-    // 5) Bullet
     Bullet* bullet = new Bullet("Bullet", "A single bullet for a gun.", "north", roomOne);
     roomOne->AddEntity("north", bullet);
 
-    // Exit que conecta RoomOne <-> RoomTwo
+    // Exit para conectar RoomOne <-> RoomTwo
     Exit* exitOne = new Exit("Door", "A passage to another room.", roomOne, roomTwo);
     exitOne->SetState(CLOSED);
     roomOne->AddEntity("north", exitOne);
     roomTwo->AddEntity("south", exitOne);
 
-    // Objetos en RoomTwo
-    // 1) HealthPotion (ya existente)
+    // RoomTwo
     HealthPotion* potion = new HealthPotion("HealthPotion", "Heals you quite a bit.", 50, "east", roomTwo);
     roomTwo->AddEntity("east", potion);
 
-    // 2) VitalityPotion
     VitalityPotion* vit = new VitalityPotion("VitalityPotion", "Raises max HP by 20 and heals 20 HP.", 20, 20, "west", roomTwo);
     roomTwo->AddEntity("west", vit);
 
-    // 3) Upgrader
     Upgrader* up = new Upgrader("Upgrader", "Allows you to upgrade a Sword or Gun by +10 damage.", "south", roomTwo);
     roomTwo->AddEntity("south", up);
 
-    // Creamos un Demon en la segunda sala
-    Demon* demon = new Demon("Demon", "A fiendish underworld creature.", roomTwo);
+    // Enemigo demon en roomTwo
+    Demon* demon = new Demon("Demon", "A fiendish underworld creature.", roomOne);
     enemies.push_back(demon);
 
     rooms.push_back(roomOne);
     rooms.push_back(roomTwo);
 
-    // Creamos al jugador en roomOne
     player = new Player("Player", "An intrepid adventurer.", roomOne);
 }
 
+// ------------------------------------
+// Destructor
+// ------------------------------------
 World::~World() {
-    // Liberar salas
-    for (size_t i = 0; i < rooms.size(); i++) {
-        delete rooms[i];
+    for (auto r : rooms) {
+        delete r;
     }
-    // Liberar enemigos
-    for (size_t i = 0; i < enemies.size(); i++) {
-        delete enemies[i];
+    for (auto e : enemies) {
+        delete e;
     }
     delete player;
 }
 
-// Comparación de cadenas ignorando mayúsculas
+// ------------------------------------
+// Comparar ignorando mayúsculas
+// ------------------------------------
 bool World::equalIgnoreCase(const std::string& a, const std::string& b) const {
     if (a.size() != b.size()) return false;
     for (size_t i = 0; i < a.size(); i++) {
@@ -111,54 +112,60 @@ bool World::equalIgnoreCase(const std::string& a, const std::string& b) const {
     return true;
 }
 
-// Busca Bag
+// ------------------------------------
+// Buscar Bag
+// ------------------------------------
 Bag* World::findBag(const std::string& containerName) {
     auto inv = player->GetInventory();
-    for (size_t i = 0; i < inv.size(); i++) {
-        if (equalIgnoreCase(inv[i]->name, containerName)) {
-            return dynamic_cast<Bag*>(inv[i]);
+    for (auto i : inv) {
+        if (equalIgnoreCase(i->name, containerName)) {
+            return dynamic_cast<Bag*>(i);
         }
     }
     auto ents = player->GetCurrentRoom()->GetEntities(player->GetPlayerDirection());
-    for (size_t i = 0; i < ents.size(); i++) {
-        if (ents[i]->type == ITEM && equalIgnoreCase(ents[i]->name, containerName)) {
-            return dynamic_cast<Bag*>(ents[i]);
+    for (auto e : ents) {
+        if (e->type == ITEM && equalIgnoreCase(e->name, containerName)) {
+            return dynamic_cast<Bag*>(e);
         }
     }
     return nullptr;
 }
 
-// Busca Exit
+// ------------------------------------
+// Buscar Exit
+// ------------------------------------
 Exit* World::findExit(const std::string& exitName) {
     auto ents = player->GetCurrentRoom()->GetEntities(player->GetPlayerDirection());
-    for (size_t i = 0; i < ents.size(); i++) {
-        if (ents[i]->type == EXIT && equalIgnoreCase(ents[i]->name, exitName)) {
-            return dynamic_cast<Exit*>(ents[i]);
+    for (auto e : ents) {
+        if (e->type == EXIT && equalIgnoreCase(e->name, exitName)) {
+            return dynamic_cast<Exit*>(e);
         }
     }
     return nullptr;
 }
 
-// Busca Item
+// ------------------------------------
+// Buscar Item
+// ------------------------------------
 Item* World::findItem(const std::string& itemName) {
-    // primero en inventario
     auto inv = player->GetInventory();
-    for (size_t i = 0; i < inv.size(); i++) {
-        if (equalIgnoreCase(inv[i]->name, itemName)) {
-            return inv[i];
+    for (auto i : inv) {
+        if (equalIgnoreCase(i->name, itemName)) {
+            return i;
         }
     }
-    // en sala actual / dirección actual
     auto ents = player->GetCurrentRoom()->GetEntities(player->GetPlayerDirection());
-    for (size_t i = 0; i < ents.size(); i++) {
-        if (ents[i]->type == ITEM && equalIgnoreCase(ents[i]->name, itemName)) {
-            return dynamic_cast<Item*>(ents[i]);
+    for (auto e : ents) {
+        if (e->type == ITEM && equalIgnoreCase(e->name, itemName)) {
+            return dynamic_cast<Item*>(e);
         }
     }
     return nullptr;
 }
 
-// Abrir exit
+// ------------------------------------
+// openExit / closeExit
+// ------------------------------------
 void World::openExit(Exit* exitPtr) {
     if (!exitPtr) return;
     if (exitPtr->GetState() == OPEN) {
@@ -172,8 +179,8 @@ void World::openExit(Exit* exitPtr) {
     bool hasKey = false;
     Item* chosenKey = nullptr;
     auto inv = player->GetInventory();
-    for (size_t i = 0; i < inv.size(); i++) {
-        if (auto realKey = dynamic_cast<Key*>(inv[i])) {
+    for (auto i : inv) {
+        if (auto realKey = dynamic_cast<Key*>(i)) {
             if (realKey->GetOpensRoom() == exitPtr->GetDestination()) {
                 hasKey = true;
                 chosenKey = realKey;
@@ -190,7 +197,6 @@ void World::openExit(Exit* exitPtr) {
         << " to open the " << exitPtr->name << ".\n";
 }
 
-// Cerrar exit
 void World::closeExit(Exit* exitPtr) {
     if (!exitPtr) return;
     if (exitPtr->GetState() == CLOSED) {
@@ -204,8 +210,8 @@ void World::closeExit(Exit* exitPtr) {
     bool hasKey = false;
     Item* chosenKey = nullptr;
     auto inv = player->GetInventory();
-    for (size_t i = 0; i < inv.size(); i++) {
-        if (auto realKey = dynamic_cast<Key*>(inv[i])) {
+    for (auto i : inv) {
+        if (auto realKey = dynamic_cast<Key*>(i)) {
             if (realKey->GetOpensRoom() == exitPtr->GetDestination()) {
                 hasKey = true;
                 chosenKey = realKey;
@@ -222,6 +228,9 @@ void World::closeExit(Exit* exitPtr) {
         << " to close the " << exitPtr->name << ".\n";
 }
 
+// ------------------------------------
+// Run (bucle principal)
+// ------------------------------------
 void World::Run() {
     std::cout << "Welcome to Zork\n";
     player->GetCurrentRoom()->Look();
@@ -234,13 +243,12 @@ void World::Run() {
             break;
         }
         ProcessCommand(command);
-        // No llamamos UpdateEnemies() aquí,
-        // sino en ProcessCommand según causeTurn.
     }
 }
 
-// Procesa comandos y marca causeTurn = true
-// en move, exit, attack, use, shoot
+// ------------------------------------
+// ProcessCommand
+// ------------------------------------
 void World::ProcessCommand(const std::string& command) {
     auto tokens = tokenize(command);
     if (tokens.empty()) {
@@ -248,11 +256,12 @@ void World::ProcessCommand(const std::string& command) {
         return;
     }
 
-    bool causeTurn = false;
+    bool causeTurn = false;  // Indica si se gasta turno
     std::string verb = tokens[0];
 
+    // Bloqueo si bag abierto en caso de move, exit, drop, attack, use, shoot
+    // (transform NO gasta turno, y la idea es permitir hacerlo sin bag abierto)
     if (player->HasOpenBag()) {
-        // Bloqueamos acciones de turno si bag abierto
         if (verb == "move" || verb == "exit" || verb == "drop"
             || verb == "attack" || verb == "use" || verb == "shoot")
         {
@@ -261,9 +270,10 @@ void World::ProcessCommand(const std::string& command) {
         }
     }
 
+    // Mapa de comandos
     std::map<std::string, std::function<void(const std::vector<std::string>&)>> cmdMap;
 
-    // look
+    // 1) LOOK
     cmdMap["look"] = [this](auto args) {
         if (args.empty()) {
             player->GetCurrentRoom()->Look();
@@ -283,7 +293,7 @@ void World::ProcessCommand(const std::string& command) {
         }
         };
 
-    // move
+    // 2) MOVE
     cmdMap["move"] = [this, &causeTurn](auto args) {
         if (args.empty()) {
             std::cout << "Move where? (north, south, east, west, center)\n";
@@ -293,7 +303,7 @@ void World::ProcessCommand(const std::string& command) {
         causeTurn = true;
         };
 
-    // exit
+    // 3) EXIT
     cmdMap["exit"] = [this, &causeTurn](auto args) {
         if (args.empty()) {
             std::cout << "Exit which direction?\n";
@@ -303,30 +313,27 @@ void World::ProcessCommand(const std::string& command) {
         causeTurn = true;
         };
 
-    // take
+    // 4) TAKE
     cmdMap["take"] = [this](auto args) {
         if (args.empty()) {
             std::cout << "Take what?\n";
             return;
         }
-        // "take bullet" => Lógica especial
         if (args.size() == 1) {
             std::string itemName = args[0];
-            // Comprobamos si es "bullet"
+            // Manejo especial bullet
             if (equalIgnoreCase(itemName, "bullet")) {
-                // Buscar la Bullet en la sala
                 Item* bulletItem = findItem("bullet");
                 if (!bulletItem) {
                     std::cout << "No bullet here.\n";
                     return;
                 }
-                // Ver si es un Bullet*
                 Bullet* b = dynamic_cast<Bullet*>(bulletItem);
                 if (!b) {
                     std::cout << "That isn't a bullet.\n";
                     return;
                 }
-                // Buscamos una Gun en el inventario del player
+                // Ver si hay Gun
                 bool hasGun = false;
                 Gun* gunPtr = nullptr;
                 auto inv = player->GetInventory();
@@ -336,25 +343,23 @@ void World::ProcessCommand(const std::string& command) {
                         gunPtr = g;
                         break;
                     }
-                    // Podrías mirar dentro de Bag si deseas, expandiendo la lógica
                 }
                 if (!hasGun) {
-                    std::cout << "You have no gun to store bullets in. You cannot pick up the bullet.\n";
+                    std::cout << "You have no gun to store bullets in.\n";
                     return;
                 }
-                // Si tenemos gun, sumamos 1 ammo
+                // +1 ammo, remover bullet de la sala
                 gunPtr->AddAmmo(1);
-                // Removemos la bullet de la sala
                 player->GetCurrentRoom()->RemoveEntity(player->GetPlayerDirection(), b);
                 std::cout << "You add a bullet to your gun. Ammo is now "
                     << gunPtr->GetAmmoCount() << ".\n";
                 return;
             }
-            // De lo contrario, no es bullet, => take normal
-            player->TakeItem(args[0]);
+            // normal take
+            player->TakeItem(itemName);
             return;
         }
-        // "take x from bag"
+        // "take x from y"
         if (args.size() == 3 && args[1] == "from") {
             std::string itemName = args[0];
             std::string containerName = args[2];
@@ -376,7 +381,7 @@ void World::ProcessCommand(const std::string& command) {
         }
         };
 
-    // drop
+    // 5) DROP
     cmdMap["drop"] = [this](auto args) {
         if (args.empty()) {
             std::cout << "Drop what?\n";
@@ -385,12 +390,12 @@ void World::ProcessCommand(const std::string& command) {
         player->DropItem(args[0]);
         };
 
-    // status
+    // 6) STATUS
     cmdMap["status"] = [this](auto args) {
         player->Status();
         };
 
-    // open
+    // 7) OPEN
     cmdMap["open"] = [this](auto args) {
         if (args.empty()) {
             std::cout << "Open what?\n";
@@ -411,7 +416,7 @@ void World::ProcessCommand(const std::string& command) {
             << ", and no bag named " << targetName << ".\n";
         };
 
-    // close
+    // 8) CLOSE
     cmdMap["close"] = [this](auto args) {
         if (args.empty()) {
             std::cout << "Close what?\n";
@@ -432,7 +437,7 @@ void World::ProcessCommand(const std::string& command) {
             << ", and no bag named " << targetName << ".\n";
         };
 
-    // save
+    // 9) SAVE
     cmdMap["save"] = [this](auto args) {
         if (args.size() < 3) {
             std::cout << "Usage: save <item> in <container>\n";
@@ -467,7 +472,7 @@ void World::ProcessCommand(const std::string& command) {
         }
         };
 
-    // attack
+    // 10) ATTACK
     cmdMap["attack"] = [this, &causeTurn](auto args) {
         if (args.empty()) {
             std::cout << "Attack who?\n";
@@ -476,10 +481,7 @@ void World::ProcessCommand(const std::string& command) {
         std::string enemyName = args[0];
         Room* curr = player->GetCurrentRoom();
         Enemy* targetEnemy = nullptr;
-        for (std::list<Entity*>::iterator it = curr->children.begin();
-            it != curr->children.end(); ++it)
-        {
-            Entity* ent = *it;
+        for (auto ent : curr->children) {
             if (ent->type == CREATURE) {
                 Enemy* en = dynamic_cast<Enemy*>(ent);
                 if (en && equalIgnoreCase(en->name, enemyName)) {
@@ -496,20 +498,16 @@ void World::ProcessCommand(const std::string& command) {
         causeTurn = true;
         };
 
-    // shoot <enemy>
+    // 11) SHOOT
     cmdMap["shoot"] = [this, &causeTurn](auto args) {
         if (args.empty()) {
             std::cout << "Shoot who?\n";
             return;
         }
         std::string enemyName = args[0];
-        // Buscar enemy en la sala
         Room* curr = player->GetCurrentRoom();
         Enemy* targetEnemy = nullptr;
-        for (std::list<Entity*>::iterator it = curr->children.begin();
-            it != curr->children.end(); ++it)
-        {
-            Entity* ent = *it;
+        for (auto ent : curr->children) {
             if (ent->type == CREATURE) {
                 Enemy* en = dynamic_cast<Enemy*>(ent);
                 if (en && equalIgnoreCase(en->name, enemyName)) {
@@ -522,51 +520,45 @@ void World::ProcessCommand(const std::string& command) {
             std::cout << "No enemy called " << enemyName << " here.\n";
             return;
         }
-        // Disparo. Lógica en player->ShootEnemy(...) (que revisa Gun y ammo)
         player->ShootEnemy(targetEnemy);
         causeTurn = true;
         };
 
-    // use (con subcasos "use <item>" y "use <item> in <target>")
+    // 12) USE
     cmdMap["use"] = [this, &causeTurn](auto args) {
         if (args.empty()) {
             std::cout << "Use what?\n";
             return;
         }
-        // Caso "use X in Y"
+        // "use x in y"
         if (args.size() == 3 && args[1] == "in") {
             std::string itemName = args[0];
             std::string targetName = args[2];
-            // Buscar itemName en inventory
             Item* it = player->FindItemInInventory(itemName);
             if (!it) {
                 std::cout << "You don't have " << itemName << " in your inventory.\n";
                 return;
             }
-            // Upgrader?
-            Upgrader* up = dynamic_cast<Upgrader*>(it);
-            if (up) {
-                // Buscar arma (Sword o Gun)
+            // Upgrader
+            if (auto up = dynamic_cast<Upgrader*>(it)) {
                 Item* targ = player->FindItemInInventory(targetName);
                 if (!targ) {
                     std::cout << "You don't have " << targetName << " in your inventory.\n";
                     return;
                 }
-                // Si es Sword
+                // Sword
                 if (auto sw = dynamic_cast<Sword*>(targ)) {
                     sw->SetDamage(sw->GetDamage() + 10);
                     std::cout << "You upgrade your sword! Damage is now "
                         << sw->GetDamage() << ".\n";
-                    // Consumir upgrader
                     player->RemoveItemFromInventory(it);
                     return;
                 }
-                // Si es Gun
+                // Gun
                 if (auto gun = dynamic_cast<Gun*>(targ)) {
                     gun->SetDamage(gun->GetDamage() + 10);
                     std::cout << "You upgrade your gun! Damage is now "
                         << gun->GetDamage() << ".\n";
-                    // Consumir Upgrader
                     player->RemoveItemFromInventory(it);
                     return;
                 }
@@ -577,7 +569,7 @@ void World::ProcessCommand(const std::string& command) {
             causeTurn = true;
             return;
         }
-        // Caso "use X" normal
+        // "use x"
         if (args.size() == 1) {
             std::string itemName = args[0];
             Item* it = player->FindItemInInventory(itemName);
@@ -602,7 +594,6 @@ void World::ProcessCommand(const std::string& command) {
             }
             // VitalityPotion
             if (auto vp = dynamic_cast<VitalityPotion*>(it)) {
-                // Sube max health +20 y cura +20
                 int extraMax = vp->GetExtraMax();
                 int heal = vp->GetHealAmount();
                 player->SetMaxHealth(player->GetMaxHealth() + extraMax);
@@ -619,6 +610,7 @@ void World::ProcessCommand(const std::string& command) {
                 causeTurn = true;
                 return;
             }
+            // Otro item => no se puede
             std::cout << "You can't use " << itemName << " like that.\n";
             causeTurn = true;
             return;
@@ -626,25 +618,48 @@ void World::ProcessCommand(const std::string& command) {
         std::cout << "Usage: use <item> [in <target>]\n";
         };
 
-    // Ejecutar
+    // 13) TRANSFORM (Devil Trigger) => no gasta turno
+    cmdMap["transform"] = [this](auto args) {
+        // Comprobar que no haya bag abierto => se hace antes
+        // "transform" no gasta turno => causeTurn = false
+        if (player->IsInDevilTrigger()) {
+            std::cout << "You are already transformed!\n";
+            return;
+        }
+        // Si no => activamos
+        player->ActivateDevilTrigger();
+        // NO set causeTurn = true, no gasta turno
+        };
+
+    // -------------------------------------------
+    // Ejecutar el comando
+    // -------------------------------------------
     tokens.erase(tokens.begin());
-    auto it = cmdMap.find(verb);
-    if (it != cmdMap.end()) {
-        it->second(tokens);
+    auto itCmd = cmdMap.find(verb);
+    if (itCmd != cmdMap.end()) {
+        itCmd->second(tokens);
     }
     else {
         std::cout << "I don't understand " << verb << "\n";
     }
 
-    // Si causeTurn => UpdateEnemies
+    // -------------------------------------------
+    // Si causeTurn => onTurnPassed y UpdateEnemies
+    // -------------------------------------------
     if (causeTurn) {
+        // Jugador reduce devilTriggerRounds si está activado
+        player->OnTurnPassed();
+
+        // Enemigos actualizan su IA
         UpdateEnemies();
     }
 }
 
-// Llamado tras cada turno
+// ------------------------------------
+// UpdateEnemies: IA
+// ------------------------------------
 void World::UpdateEnemies() {
-    for (size_t i = 0; i < enemies.size(); i++) {
-        enemies[i]->Update(player);
+    for (auto e : enemies) {
+        e->Update(player);
     }
 }
